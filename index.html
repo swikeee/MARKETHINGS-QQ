@@ -850,6 +850,7 @@ html.locked #gate{display:grid}
 #gate #gBtn:disabled{opacity:.6;cursor:wait}
 #gate .g-msg{min-height:16px;margin:10px 0 0;font-size:12px;color:#FCA5A5}
 #gate .g-msg:empty{display:none}
+#gate.checking .g-roles,#gate.checking .g-card,#gate.checking h1{visibility:hidden}
 #gate .g-foot{margin:26px 0 0;font-size:11px;color:#6F8783}
 </style>
 <style id="sound-css">
@@ -6307,10 +6308,16 @@ $("#gForm").onsubmit = async e => {
   b.disabled = false; b.textContent = "Masuk";
   if (err){ m.textContent = err; $("#gPw").select(); return; }
   if (!API_URL){ API_URL = DEFAULT_API_URL; store.set("li.forceDemo", ""); }
-  if (!TOKEN || (await gateCheck(TOKEN))){ TOKEN = pw; store.set("li.token", pw); }   // token tulis yang sudah tersimpan tetap dipakai
+  TOKEN = pw; store.set("li.token", pw);   // hak akses mengikuti password yang dipakai masuk
+  try { sessionStorage.setItem("qq.in", "1"); } catch {}
   mode = "live"; startApp();
 };
-(async () => { if (TOKEN && !(await gateCheck(TOKEN))) startApp(); })();
+// Password diminta lagi setiap kali browser/tab baru dibuka. Dalam tab yang sama (refresh), sesi tetap berlaku.
+(async () => { let inSession = ""; try { inSession = sessionStorage.getItem("qq.in") || ""; } catch {}
+  if (!inSession || !TOKEN) return;
+  const g = $("#gate"); g.classList.add("checking");
+  if (!(await gateCheck(TOKEN))) return startApp();
+  g.classList.remove("checking"); try { sessionStorage.removeItem("qq.in"); } catch {} })();
 $("#btnSalesReload").onclick = async e => { const b = e.currentTarget; b.disabled = true; if (SALES_SHEET) await loadSheetSales(false); else await load(); b.disabled = false; };
 })();
 </script>
