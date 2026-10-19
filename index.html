@@ -3970,14 +3970,16 @@ async function loadBackendSheetUrl(){
   if (!salesViaApi() || !API_URL || !TOKEN) return;
   try { const j = await (await fetch(API_URL + (API_URL.includes("?") ? "&" : "?") + "sheet=1&token=" + encodeURIComponent(TOKEN), {cache:"no-store"})).json();
     backendSheetUrl = j && j.ok && /^https:\/\/docs\.google\.com\//.test(j.url || "") ? j.url : ""; } catch { backendSheetUrl = ""; }
-  if (backendSheetUrl) sheetUnlocked = true;   // sudah masuk dengan password Product Development
   renderSalesSource();
 }
 function sheetUrl(){ if (salesViaApi()) return backendSheetUrl; const u = (String(SALES_SHEET).match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+/) || [])[0]; return u ? u + "/edit" : ""; }
 let sheetUnlocked = false, passTries = 0;
 function openSheetGate(){
   const url = sheetUrl(); if (!url) return toast("Belum ada Google Sheet yang terhubung");
-  if (salesViaApi()) return void window.open(url, "_blank", "noopener");   // sudah masuk sebagai Product Development
+  if (salesViaApi()){ sheetUnlocked = false;   // selalu minta password Product Development setiap membuka sheet
+    return askPass(() => { const w = window.open(backendSheetUrl || url, "_blank", "noopener");
+      if (!w){ $("#mTitle").textContent = "Buka data sheet"; $("#mBody").innerHTML = `<p class="note" style="margin:0">Browser memblokir jendela baru. Klik tombol di bawah untuk membuka sheet.</p>`;
+        const act = $("#mActions"); act.innerHTML = ""; const a = document.createElement("a"); a.className = "btn primary"; a.href = backendSheetUrl || url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Buka sheet"; a.onclick = closeModal; act.append(a); $("#modal").hidden = false; } }, "Buka sheet"); }
   askPass(() => window.open(url, "_blank", "noopener"), "Buka sheet");
 }
 /** Mode backend: password sheet = password Product Development (WRITE_TOKEN), dicek oleh server. */
