@@ -821,6 +821,7 @@ html.locked body{overflow:hidden}
 #gate{position:fixed;inset:0;z-index:2147483000;display:none;place-items:center;padding:24px 16px;overflow:auto;font-family:var(--f-body);color:#F4F7F6;
   background:radial-gradient(120% 80% at 50% 0%,#0F3B35 0%,#0A1F1C 45%,#050807 100%)}
 html.locked #gate{display:grid}
+html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setelah masuk */
 #gate .g-wrap{width:100%;max-width:640px;text-align:center}
 #gate .g-logo{margin:0;font:700 clamp(32px,6vw,44px)/1 var(--f-display);letter-spacing:-.03em;color:#fff}
 #gate .g-logo span{color:#2DD4BF}
@@ -960,8 +961,12 @@ html.locked #gate{display:grid}
 </div>
 <script>
 // Splash pembuka: keluar dengan scroll ke bawah, tirai naik pelan mengikuti scroll (berdiri sendiri, tidak bergantung skrip utama)
+// Baru dimulai setelah password benar (event "gate:open"), supaya tidak bertabrakan dengan layar masuk.
 (function(){
   var sp = document.getElementById("splash"), root = document.documentElement; if (!sp) return;
+  if (root.classList.contains("locked")) return addEventListener("gate:open", run, {once:true});
+  run();
+  function run(){
   function finish(){ if (!sp) return; removeEventListener("wheel", onWheel); removeEventListener("keydown", onKey); removeEventListener("touchstart", onTS); removeEventListener("touchmove", onTM);
     root.classList.remove("sp-lock"); sp.remove(); sp = null; dispatchEvent(new Event("splash:done")); }
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
@@ -980,6 +985,7 @@ html.locked #gate{display:grid}
   function onTM(e){ var y = e.touches[0].clientY; add((ty - y) * 1.6); ty = y; if (e.cancelable) e.preventDefault(); }
   addEventListener("wheel", onWheel, {passive:false}); addEventListener("keydown", onKey); addEventListener("touchstart", onTS, {passive:true}); addEventListener("touchmove", onTM, {passive:false});
   document.getElementById("spCue").onclick = function(){ add(dist()); };
+  }
 })();
 </script>
 <div id="segSplash" role="presentation" aria-hidden="true"></div>
@@ -6291,7 +6297,7 @@ async function gateCheck(tok){
 }
 let started = false;
 function startApp(){
-  if (started) return; started = true; document.documentElement.classList.remove("locked");
+  if (started) return; started = true; document.documentElement.classList.remove("locked"); dispatchEvent(new Event("gate:open"));
   writeInputs(); initMotion(); renderSim(); load().then(() => loadSheetSales(true)).then(() => loadEvents()); loadFiles(); navigator.storage?.persist?.().catch(()=>{});
 }
 // pilih peran → kotak password muncul (seperti Poparkner)
