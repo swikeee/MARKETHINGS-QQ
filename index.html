@@ -3933,6 +3933,7 @@ async function loadBackendSheetUrl(){
   if (!salesViaApi() || !API_URL || !TOKEN) return;
   try { const j = await (await fetch(API_URL + (API_URL.includes("?") ? "&" : "?") + "sheet=1&token=" + encodeURIComponent(TOKEN), {cache:"no-store"})).json();
     backendSheetUrl = j && j.ok && /^https:\/\/docs\.google\.com\//.test(j.url || "") ? j.url : ""; } catch { backendSheetUrl = ""; }
+  if (backendSheetUrl) sheetUnlocked = true;   // sudah masuk dengan password Product Development
   renderSalesSource();
 }
 function sheetUrl(){ if (salesViaApi()) return backendSheetUrl; const u = (String(SALES_SHEET).match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+/) || [])[0]; return u ? u + "/edit" : ""; }
@@ -3942,17 +3943,24 @@ function openSheetGate(){
   if (salesViaApi()) return void window.open(url, "_blank", "noopener");   // sudah masuk sebagai Product Development
   askPass(() => window.open(url, "_blank", "noopener"), "Buka sheet");
 }
+/** Mode backend: password sheet = password Product Development (WRITE_TOKEN), dicek oleh server. */
+async function isProdevPass(pw){
+  if (!pw || !API_URL) return false;
+  try { const j = await (await fetch(API_URL + (API_URL.includes("?") ? "&" : "?") + "sheet=1&token=" + encodeURIComponent(pw), {cache:"no-store"})).json();
+    if (j && j.ok && /^https:\/\/docs\.google\.com\//.test(j.url || "")){ backendSheetUrl = j.url; return true; } } catch {}
+  return false;
+}
 function askPass(onOk, okLabel){
   if (sheetUnlocked) return void onOk();
   $("#mTitle").textContent = "Masukkan password";
-  $("#mBody").innerHTML = `<div class="form"><p class="note" style="margin:0">Data sheet hanya untuk yang berwenang. Masukkan password untuk membukanya.</p>
+  $("#mBody").innerHTML = `<div class="form"><p class="note" style="margin:0">Data sheet hanya untuk yang berwenang. Masukkan password ${salesViaApi() ? "<b>Product Development</b> (sama dengan password masuk)" : ""} untuk membukanya.</p>
     <div class="field"><label for="gPass">Password</label><input type="password" id="gPass" autocomplete="off"></div><p class="note up" id="gPassMsg" style="margin:0" hidden></p></div>`;
   const act=$("#mActions"); act.innerHTML="";
   const c=document.createElement("button"); c.className="btn"; c.textContent="Batal"; c.onclick=closeModal;
   const go=document.createElement("button"); go.className="btn primary"; go.textContent=okLabel || "Lanjut";
-  const submit = () => {
+  const submit = async () => {
     if (passTries >= 5){ $("#gPassMsg").hidden=false; $("#gPassMsg").textContent="Terlalu banyak percobaan. Muat ulang halaman untuk mencoba lagi."; return; }
-    if (passHash($("#gPass").value) === currentPassHash()){ sheetUnlocked = true; passTries = 0; closeModal(); onOk(); }
+    if (salesViaApi() ? await isProdevPass($("#gPass").value) : passHash($("#gPass").value) === currentPassHash()){ sheetUnlocked = true; passTries = 0; closeModal(); onOk(); }
     else { passTries++; $("#gPassMsg").hidden=false; $("#gPassMsg").textContent=`Password salah. Sisa percobaan: ${5-passTries}.`; $("#gPass").value=""; $("#gPass").focus(); }
   };
   go.onclick = submit; act.append(c,go); $("#modal").hidden=false;
@@ -3994,7 +4002,7 @@ $("#btnSettings").onclick = () => {
     <div class="field"><label for="cfgSheet">Link Google Sheet rekap penjualan (format REKAP ALL TIME)</label><input type="url" id="cfgSheet" value="${sheetUnlocked ? esc(SALES_SHEET) : ""}" ${sheetUnlocked ? "" : "disabled"} placeholder="${sheetUnlocked ? "https://docs.google.com/spreadsheets/d/…" : "Tersembunyi. Buka kunci dengan password untuk melihat atau mengganti"}">${sheetUnlocked ? "" : '<div style="margin-top:6px"><button class="btn sm" id="cfgUnlock" type="button">Buka kunci</button></div>'}</div>
     <div class="field"><label for="cfgTab">Nama tab (kosongkan = tab pertama / sesuai gid di link)</label><input type="text" id="cfgTab" value="${esc(SALES_TAB)}" placeholder="REKAP ALL TIME"></div>
     <p class="note" style="margin:0">${salesViaApi() ? `Isi <b>backend</b> = dibaca lewat Apps Script dari Sheet di Script Property <b>SALES_SHEET_ID</b> (butuh token). Sheet tidak perlu dibagikan.` : `Sheet harus dibagikan <b>Anyone with the link · Viewer</b>. Baris baru di sheet otomatis masuk ke Sales Report.`}</p>
-    <div class="field"><label>Password tombol “Buka data sheet”</label><div><button class="btn sm" id="cfgPass" type="button">Ganti password sheet</button></div></div>
+    ${salesViaApi() ? `<p class="note" style="margin:0">Password tombol “Buka data sheet” = password masuk <b>Product Development</b> (WRITE_TOKEN di Script Properties).</p>` : `<div class="field"><label>Password tombol “Buka data sheet”</label><div><button class="btn sm" id="cfgPass" type="button">Ganti password sheet</button></div></div>`}
     <div class="field"><label for="cfgEvApi">URL Apps Script event (untuk simpan event ke tab EVENT)</label><input type="url" id="cfgEvApi" value="${esc(EVENT_API)}" placeholder="https://script.google.com/macros/s/…/exec"></div>
     <div class="sep"></div>
     <div class="field"><label for="cfgTok">Token (READ_TOKEN untuk baca, WRITE_TOKEN untuk simpan)</label><input type="password" id="cfgTok" value="${esc(TOKEN || DEFAULT_TOKEN)}" placeholder="kosongkan untuk akses baca saja"></div>
@@ -4025,7 +4033,7 @@ $("#btnSettings").onclick = () => {
     if (changed){ salesSource = "demo"; sheetError = ""; }
     dbState="loading"; closeModal(); load().then(() => loadSheetSales(false)); toast(mode==="live"?"Terhubung ke Google Sheet":"Pengaturan disimpan"); };
   act.append(demo,test,save); $("#modal").hidden=false;
-  $("#cfgPass").onclick = changeSheetPass;
+  const cp = $("#cfgPass"); if (cp) cp.onclick = changeSheetPass;
   $("#cfgLinkCopy").onclick = () => { const a = $("#cfgUrl").value.trim(), m = $("#cfgMsg");
     if (!okScriptUrl(a)) return m.textContent = "Isi dulu URL Apps Script yang benar (https://script.google.com/…/exec).";
     const code = "#sambung=" + makeLinkCode(a, $("#cfgTok").value.trim(), $("#cfgEvApi").value.trim()), web = /^https?:$/.test(location.protocol);
