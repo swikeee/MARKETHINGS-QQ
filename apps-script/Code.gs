@@ -11,8 +11,9 @@
  *   WRITE_TOKEN        wajib: kata sandi untuk menyimpan/sinkron dari dashboard
  *   READ_TOKEN         opsional: bila diisi, dashboard harus mengirim token untuk membaca data
  *                      (WAJIB bila SALES_SHEET_ID diisi, supaya data penjualan tidak terbuka untuk umum)
- *   SALES_SHEET_ID     opsional: ID Google Sheet rekap penjualan (format REKAP ALL TIME, tab STOK, tab EVENT).
- *                      Sheet ini dibaca lewat Apps Script, jadi TIDAK perlu dibagikan "Anyone with the link".
+ *   SALES_SHEET_ID     opsional: ID Google Sheet rekap penjualan terpisah (format REKAP ALL TIME, tab STOK, tab EVENT).
+ *                      Kosongkan bila tab REKAP ALL TIME ada di Sheet ini sendiri. Dibaca lewat Apps Script,
+ *                      jadi Sheet rekap TIDAK perlu dibagikan "Anyone with the link".
  *   MODEL              opsional: default "claude-sonnet-5-5"
  *   AI_DAILY_LIMIT     opsional: batas jumlah panggilan AI per hari (default 150; 0 = tanpa batas). Pengaman saldo API.
  *   EFFORT             opsional: effort untuk Insight AI & Ringkasan AI. Default "low"; bisa medium | high | xhigh | max | off
@@ -116,10 +117,10 @@ function doGet(e) {
 
 /** Isi satu tab Sheet rekap penjualan sebagai tabel teks (nilai seperti yang tampil di Sheet). Hanya jalan bila READ_TOKEN diisi. */
 function salesTab(tab) {
-  const id = prop('SALES_SHEET_ID');
-  if (!id) throw new Error('SALES_SHEET_ID belum diisi di Script Properties.');
   if (!prop('READ_TOKEN')) throw new Error('Isi READ_TOKEN dulu supaya data penjualan tidak bisa dibaca tanpa token.');
-  const ss = SpreadsheetApp.openById(id);
+  // Default: tab rekap ada di Sheet ini sendiri (tidak butuh izin tambahan). SALES_SHEET_ID hanya untuk Sheet rekap terpisah.
+  const own = SpreadsheetApp.getActive(), id = prop('SALES_SHEET_ID');
+  const ss = !id || id === own.getId() ? own : SpreadsheetApp.openById(id);
   const sh = tab ? ss.getSheetByName(String(tab)) : ss.getSheets()[0];
   if (!sh) throw new Error('Tab "' + tab + '" tidak ditemukan di Sheet rekap penjualan.');
   return sh.getDataRange().getDisplayValues();
