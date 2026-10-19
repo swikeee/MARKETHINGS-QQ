@@ -1727,6 +1727,7 @@ async function load(silent){
     if (j.settings?.macro){ try { MACRO = JSON.parse(j.settings.macro) || {}; store.set("li.macro", j.settings.macro); } catch {} }
     if (j.settings?.ppt){ try { PPT_SET = {...PPT_SET, ...JSON.parse(j.settings.ppt)}; } catch {} }   // indikator makro & target laporan PPT per kuartal
     if (j.settings?.kom){ try { KOM = {...KOM_DEFAULT, ...JSON.parse(j.settings.kom)}; } catch {} }   // ketentuan sewa & jual dipakai bersama lewat Sheet
+    if (j.settings?.katalog){ try { applyKatalog(JSON.parse(j.settings.katalog)); } catch {} }   // nama cluster & tipe asli dari Sheet
     if (salesSource !== "sheet"){
       salesDemo = !(j.sales && j.sales.length); salesSource = salesDemo ? "demo" : "api";
       sales = salesDemo ? DEMO_SALES.sales : j.sales; leads = salesDemo ? DEMO_SALES.leads : (j.leads || []); }
@@ -4555,9 +4556,22 @@ const CLUSTER_NOTE = {"Serugriya":"2 lantai", "Uno Plaza":"Shophouse", "Uhuy Pla
 const tnorm = v => String(v||"").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const parseSize = v => { const m = String(v||"").match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i); return m ? {w:+m[1].replace(",","."), d:+m[2].replace(",",".")} : null; };
 const sizeTxt = z => z ? `${String(z.w).replace(".",",")} × ${String(z.d).replace(".",",")}` : "";
-const TYPES = Object.fromEntries(Object.entries(TYPE_CATALOG).map(([cl, list]) => [cl, list.map((raw, i) => { const [main, alias] = raw.split("|"), kav = /\(kavling\)/i.test(main), z = parseSize(main);
+const buildTypes = () => Object.fromEntries(Object.entries(TYPE_CATALOG).map(([cl, list]) => [cl, list.map((raw, i) => { const [main, alias] = raw.split("|"), kav = /\(kavling\)/i.test(main), z = parseSize(main);
   const name = main.replace(/\(kavling\)/i, "").replace(/\s*\d+(?:[.,]\d+)?\s*x\s*\d+(?:[.,]\d+)?\s*$/i, "").trim();
   return {cluster:cl, name, w:z?.w ?? null, d:z?.d ?? null, lt:z ? z.w*z.d : null, size:sizeTxt(z), kav, order:i, keys:[tnorm(name), ...(alias ? [tnorm(alias)] : [])], key:cl + "|" + name + "|" + sizeTxt(z)}; })]));
+const TYPES = buildTypes();
+/** Katalog cluster & tipe asli disimpan di Google Sheet (tab Settings, id "katalog"), bukan di file publik ini.
+ *  Bentuk: {"clusters":[{"name","seg"}], "types":{"Cluster":["Tipe LxP", …]}, "notes":{"Cluster":"catatan"}}. Menggantikan nama samaran di atas. */
+function applyKatalog(k){
+  if (!k || !Array.isArray(k.clusters) || !k.types || typeof k.types !== "object") return false;
+  const bySeg = {}; CLUSTERS.forEach(c => { bySeg[c.seg] ??= c; });
+  const cl = k.clusters.filter(c => c && c.name).map(c => ({name:String(c.name), seg:String(c.seg || "Lainnya"), price:num(c.price) || bySeg[c.seg]?.price || 0, base:num(c.base) || bySeg[c.seg]?.base || 0}));
+  CLUSTERS.splice(0, CLUSTERS.length, ...cl);
+  Object.keys(TYPE_CATALOG).forEach(x => delete TYPE_CATALOG[x]); Object.entries(k.types).forEach(([c, list]) => { if (Array.isArray(list)) TYPE_CATALOG[c] = list.map(String); });
+  Object.keys(CLUSTER_NOTE).forEach(x => delete CLUSTER_NOTE[x]); Object.assign(CLUSTER_NOTE, k.notes && typeof k.notes === "object" ? k.notes : {});
+  const t = buildTypes(); Object.keys(TYPES).forEach(x => delete TYPES[x]); Object.assign(TYPES, t);
+  typeCache.clear(); segMapOf = null; return true;
+}
 const typeCache = new Map();
 /** Cocokkan satu baris penjualan ke katalog: nama tipe (tanpa akhiran Standard/Hook), lalu ukuran kavling bila ada dua tipe bernama sama. */
 function typeOf(x){
