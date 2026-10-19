@@ -3928,24 +3928,32 @@ function sampleDxf(){
 const passHash = p => sha256("markethings:" + p);
 const currentPassHash = () => store.get("li.sheetPass") || SHEET_PASS_HASH;
 const validPass = p => /^[A-Za-z0-9]{6,}$/.test(p) && /[A-Za-z]/.test(p) && /[0-9]/.test(p);
-function sheetUrl(){ const u = (String(SALES_SHEET).match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+/) || [])[0]; return u ? u + "/edit" : ""; }
+let backendSheetUrl = "";   // diisi server hanya untuk WRITE_TOKEN (Product Development)
+async function loadBackendSheetUrl(){
+  if (!salesViaApi() || !API_URL || !TOKEN) return;
+  try { const j = await (await fetch(API_URL + (API_URL.includes("?") ? "&" : "?") + "sheet=1&token=" + encodeURIComponent(TOKEN), {cache:"no-store"})).json();
+    backendSheetUrl = j && j.ok && /^https:\/\/docs\.google\.com\//.test(j.url || "") ? j.url : ""; } catch { backendSheetUrl = ""; }
+  renderSalesSource();
+}
+function sheetUrl(){ if (salesViaApi()) return backendSheetUrl; const u = (String(SALES_SHEET).match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+/) || [])[0]; return u ? u + "/edit" : ""; }
 let sheetUnlocked = false, passTries = 0;
 function openSheetGate(){
   const url = sheetUrl(); if (!url) return toast("Belum ada Google Sheet yang terhubung");
+  if (salesViaApi()) return void window.open(url, "_blank", "noopener");   // sudah masuk sebagai Product Development
   askPass(() => window.open(url, "_blank", "noopener"), "Buka sheet");
 }
 function askPass(onOk, okLabel){
   if (sheetUnlocked) return void onOk();
   $("#mTitle").textContent = "Masukkan password";
   $("#mBody").innerHTML = `<div class="form"><p class="note" style="margin:0">Data sheet hanya untuk yang berwenang. Masukkan password untuk membukanya.</p>
-    <div class="field"><label for="gPass">Password</label><input type="password" id="gPass" autocomplete="off"></div><p class="note up" id="gMsg" style="margin:0" hidden></p></div>`;
+    <div class="field"><label for="gPass">Password</label><input type="password" id="gPass" autocomplete="off"></div><p class="note up" id="gPassMsg" style="margin:0" hidden></p></div>`;
   const act=$("#mActions"); act.innerHTML="";
   const c=document.createElement("button"); c.className="btn"; c.textContent="Batal"; c.onclick=closeModal;
   const go=document.createElement("button"); go.className="btn primary"; go.textContent=okLabel || "Lanjut";
   const submit = () => {
-    if (passTries >= 5){ $("#gMsg").hidden=false; $("#gMsg").textContent="Terlalu banyak percobaan. Muat ulang halaman untuk mencoba lagi."; return; }
+    if (passTries >= 5){ $("#gPassMsg").hidden=false; $("#gPassMsg").textContent="Terlalu banyak percobaan. Muat ulang halaman untuk mencoba lagi."; return; }
     if (passHash($("#gPass").value) === currentPassHash()){ sheetUnlocked = true; passTries = 0; closeModal(); onOk(); }
-    else { passTries++; $("#gMsg").hidden=false; $("#gMsg").textContent=`Password salah. Sisa percobaan: ${5-passTries}.`; $("#gPass").value=""; $("#gPass").focus(); }
+    else { passTries++; $("#gPassMsg").hidden=false; $("#gPassMsg").textContent=`Password salah. Sisa percobaan: ${5-passTries}.`; $("#gPass").value=""; $("#gPass").focus(); }
   };
   go.onclick = submit; act.append(c,go); $("#modal").hidden=false;
   setTimeout(()=>{ $("#gPass").focus(); $("#gPass").addEventListener("keydown", e => { if (e.key==="Enter") submit(); }); },0);
@@ -4886,7 +4894,7 @@ async function loadSheetSales(silent){
 }
 function renderSalesSource(){
   const el = $("#salesSrc"); if (!el) return;
-  const url = (String(SALES_SHEET).match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+/) || [])[0];
+  const url = sheetUrl();
   $("#btnOpenSheet").hidden = !url;
   el.innerHTML = salesSource === "sheet"
     ? `<span class="dot ok"></span><span title="Dibaca dari Google Sheet rekap penjualan. Dicek otomatis tiap ${Math.round(SYNC_MS/1000)} detik; tampilan berubah sendiri bila isi sheet berubah.">Google Sheet · ${sales.length} baris · ${sheetLoadedAt.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</span>`
@@ -6297,7 +6305,7 @@ async function gateCheck(tok){
 let started = false;
 function startApp(){
   if (started) return; started = true; document.documentElement.classList.remove("locked"); dispatchEvent(new Event("gate:open"));
-  writeInputs(); initMotion(); renderSim(); load().then(() => loadSheetSales(true)).then(() => loadEvents()); loadFiles(); navigator.storage?.persist?.().catch(()=>{});
+  writeInputs(); initMotion(); renderSim(); loadBackendSheetUrl(); load().then(() => loadSheetSales(true)).then(() => loadEvents()); loadFiles(); navigator.storage?.persist?.().catch(()=>{});
 }
 // pilih peran → kotak password muncul (seperti Poparkner)
 $("#gRoles").onclick = e => { const r = e.target.closest(".g-role"); if (!r) return;

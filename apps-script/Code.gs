@@ -109,6 +109,7 @@ function doGet(e) {
     const p = e.parameter || {};
     const readTok = prop('READ_TOKEN');
     if (readTok && p.token !== readTok && p.token !== prop('WRITE_TOKEN')) return out({ ok: false, error: 'unauthorized' });
+    if (p.sheet) return out(p.token && p.token === prop('WRITE_TOKEN') ? { ok: true, url: SpreadsheetApp.getActive().getUrl() } : { ok: false, error: 'unauthorized' });   // tombol "Buka data sheet" hanya untuk WRITE_TOKEN
     if (p.tab !== undefined) return out({ ok: true, rows: salesTab(p.tab) });   // tab dari Sheet rekap penjualan (SALES_SHEET_ID)
     if (p.rev) return out({ ok: true, rev: revision() });   // cek ringan: dashboard hanya mengambil data lengkap bila angka ini berubah
     return out({ ok: true, ...snapshot() });
