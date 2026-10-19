@@ -815,6 +815,20 @@ h3{font:600 14px/1.35 var(--f-body);letter-spacing:-.005em;margin:0 0 12px}
 .sg-tag{margin:10px 0 0;font:italic 400 clamp(14px,1.7vw,22px)/1.3 "Inter",var(--f-display);color:rgba(255,255,255,.94);opacity:0;animation:spFade .32s ease-out .36s forwards}
 .sg-rule{display:block;width:clamp(56px,8vw,120px);height:4px;border-radius:3px;background:#fff;margin:clamp(14px,2vw,24px) auto 0;transform:scaleX(0);animation:spBar .4s cubic-bezier(.2,.9,.2,1) .3s forwards}
 @media (prefers-reduced-motion:reduce){#splash,#segSplash{display:none!important}}
+
+/* ---------- layar masuk (password marketing) ---------- */
+html.locked body{overflow:hidden}
+#gate{position:fixed;inset:0;z-index:2147483000;display:none;place-items:center;padding:16px;background:var(--bg);font-family:var(--f-body)}
+html.locked #gate{display:grid}
+#gate .g-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 24px;box-shadow:var(--shadow)}
+#gate .g-brand{font:700 22px/1.1 var(--f-display);letter-spacing:-.02em;color:var(--ink);margin:0}
+#gate .g-sub{margin:6px 0 22px;color:var(--muted);font-size:13px}
+#gate label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+#gate input{width:100%;box-sizing:border-box;font:500 14px var(--f-body);padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+#gate input:focus{outline:2px solid var(--accent);outline-offset:1px}
+#gate button{width:100%;margin-top:14px;font:600 14px var(--f-body);padding:10px 12px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+#gate button:disabled{opacity:.6;cursor:wait}
+#gate .g-msg{min-height:18px;margin:10px 0 0;font-size:12px;color:#DC2626}
 </style>
 <style id="sound-css">
 /* tombol musik santai: ikon kecil di bar atas */
@@ -884,6 +898,17 @@ h3{font:600 14px/1.35 var(--f-body);letter-spacing:-.005em;margin:0 0 12px}
 </style>
 </head>
 <body>
+<script>document.documentElement.classList.add("locked")</script>
+<div id="gate" role="dialog" aria-modal="true" aria-labelledby="gTitle">
+  <form class="g-card" id="gForm" autocomplete="on">
+    <p class="g-brand" id="gTitle">MARKETHINGS</p>
+    <p class="g-sub">Masuk sebagai Marketing</p>
+    <label for="gPw">Password</label>
+    <input type="password" id="gPw" name="password" autocomplete="current-password" required>
+    <button type="submit" id="gBtn">Masuk</button>
+    <p class="g-msg" id="gMsg" role="alert"></p>
+  </form>
+</div>
 <div id="splash" role="presentation">
   <div class="sp-dim"></div>
   <div class="sp-back"></div>
@@ -6223,7 +6248,31 @@ addEventListener("scroll", hideTip, {passive:true});
   addEventListener("scroll", mark, {passive:true}); mark(); })();
 
 // ---------- boot ----------
-writeInputs(); initMotion(); renderSim(); load().then(() => loadSheetSales(true)).then(() => loadEvents()); loadFiles(); navigator.storage?.persist?.().catch(()=>{});
+// ---------- layar masuk: password diperiksa oleh Apps Script (READ_TOKEN), bukan di halaman ini ----------
+async function gateCheck(tok){
+  const base = API_URL || DEFAULT_API_URL; if (!base) return "URL Apps Script belum diatur.";
+  const q = t => fetch(base + (base.includes("?") ? "&" : "?") + "rev=1&token=" + encodeURIComponent(t), {cache:"no-store"}).then(r => r.json());
+  let j; try { j = await q(tok); } catch { return "Server tidak merespons. Coba lagi."; }
+  if (!j.ok) return j.error === "unauthorized" ? "Password salah." : (j.error || "Gagal masuk.");
+  try { if ((await q("")).ok) return "Server belum dikunci: isi READ_TOKEN di Script Properties."; } catch {}
+  return "";
+}
+let started = false;
+function startApp(){
+  if (started) return; started = true; document.documentElement.classList.remove("locked");
+  writeInputs(); initMotion(); renderSim(); load().then(() => loadSheetSales(true)).then(() => loadEvents()); loadFiles(); navigator.storage?.persist?.().catch(()=>{});
+}
+$("#gForm").onsubmit = async e => {
+  e.preventDefault(); const pw = $("#gPw").value, b = $("#gBtn"), m = $("#gMsg");
+  b.disabled = true; b.textContent = "Memeriksa…"; m.textContent = "";
+  const err = await gateCheck(pw);
+  b.disabled = false; b.textContent = "Masuk";
+  if (err){ m.textContent = err; $("#gPw").select(); return; }
+  if (!API_URL){ API_URL = DEFAULT_API_URL; store.set("li.forceDemo", ""); }
+  if (!TOKEN || (await gateCheck(TOKEN))){ TOKEN = pw; store.set("li.token", pw); }   // token tulis yang sudah tersimpan tetap dipakai
+  mode = "live"; startApp();
+};
+(async () => { if (TOKEN && !(await gateCheck(TOKEN))) startApp(); else $("#gPw").focus(); })();
 $("#btnSalesReload").onclick = async e => { const b = e.currentTarget; b.disabled = true; if (SALES_SHEET) await loadSheetSales(false); else await load(); b.disabled = false; };
 })();
 </script>
