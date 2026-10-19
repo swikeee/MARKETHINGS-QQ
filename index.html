@@ -818,17 +818,39 @@ h3{font:600 14px/1.35 var(--f-body);letter-spacing:-.005em;margin:0 0 12px}
 
 /* ---------- layar masuk (password marketing) ---------- */
 html.locked body{overflow:hidden}
-#gate{position:fixed;inset:0;z-index:2147483000;display:none;place-items:center;padding:16px;background:var(--bg);font-family:var(--f-body)}
+#gate{position:fixed;inset:0;z-index:2147483000;display:none;place-items:center;padding:24px 16px;overflow:auto;font-family:var(--f-body);color:#F4F7F6;
+  background:radial-gradient(120% 80% at 50% 0%,#0F3B35 0%,#0A1F1C 45%,#050807 100%)}
 html.locked #gate{display:grid}
-#gate .g-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 24px;box-shadow:var(--shadow)}
-#gate .g-brand{font:700 22px/1.1 var(--f-display);letter-spacing:-.02em;color:var(--ink);margin:0}
-#gate .g-sub{margin:6px 0 22px;color:var(--muted);font-size:13px}
-#gate label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-#gate input{width:100%;box-sizing:border-box;font:500 14px var(--f-body);padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
-#gate input:focus{outline:2px solid var(--accent);outline-offset:1px}
-#gate button{width:100%;margin-top:14px;font:600 14px var(--f-body);padding:10px 12px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
-#gate button:disabled{opacity:.6;cursor:wait}
-#gate .g-msg{min-height:18px;margin:10px 0 0;font-size:12px;color:#DC2626}
+#gate .g-wrap{width:100%;max-width:640px;text-align:center}
+#gate .g-logo{margin:0;font:700 clamp(32px,6vw,44px)/1 var(--f-display);letter-spacing:-.03em;color:#fff}
+#gate .g-logo span{color:#2DD4BF}
+#gate .g-tag{margin:10px 0 0;font:600 11px/1 var(--f-mono);letter-spacing:.18em;color:#8FB8B1}
+#gate h1{margin:26px 0 30px;font:700 clamp(24px,4.6vw,34px)/1.15 var(--f-display);letter-spacing:-.02em;color:#fff}
+#gate .g-roles{display:flex;justify-content:center;gap:22px;flex-wrap:wrap}
+#gate .g-role{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;width:132px;text-align:center}
+#gate .g-ic{display:grid;place-items:center;width:118px;height:118px;border-radius:14px;background:var(--rc);color:#fff;border:2px solid transparent;transition:transform .15s,border-color .15s,opacity .15s}
+#gate .g-ic svg{width:44px;height:44px}
+#gate .g-role:hover .g-ic{transform:translateY(-2px)}
+#gate .g-role:focus-visible .g-ic{outline:2px solid #2DD4BF;outline-offset:3px}
+#gate .g-role[aria-pressed="true"] .g-ic{border-color:#fff}
+#gate .g-roles.picked .g-role[aria-pressed="false"] .g-ic{opacity:.45}
+#gate .g-role b{margin-top:12px;font:600 15px/1.2 var(--f-body);color:#E6EEEC}
+#gate .g-role small{margin-top:3px;font-size:11px;color:#8FA5A1}
+#gate .g-card{width:100%;max-width:300px;margin:30px auto 0;box-sizing:border-box;padding:18px 18px 16px;border-radius:14px;background:rgba(10,32,29,.75);border:1px solid rgba(143,184,177,.22)}
+#gate .g-card[hidden]{display:none}
+#gate .g-who{margin:0;font:700 14px/1.3 var(--f-body);color:#fff}
+#gate .g-who small{display:block;margin-top:2px;font:400 11px var(--f-body);color:#8FA5A1}
+#gate input{width:100%;box-sizing:border-box;margin-top:14px;font:500 14px var(--f-body);text-align:center;padding:11px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.75);background:#06110F;color:#fff}
+#gate input::placeholder{color:#6F8783;letter-spacing:.08em}
+#gate input:focus{outline:2px solid #2DD4BF;outline-offset:1px}
+#gate .g-act{display:flex;gap:8px;margin-top:14px}
+#gate .g-act button{flex:1;font:600 13px var(--f-body);padding:9px 12px;border-radius:8px;border:0;cursor:pointer;text-align:left}
+#gate #gCancel{background:#fff;color:#0A1F1C}
+#gate #gBtn{background:#0F766E;color:#fff}
+#gate #gBtn:disabled{opacity:.6;cursor:wait}
+#gate .g-msg{min-height:16px;margin:10px 0 0;font-size:12px;color:#FCA5A5}
+#gate .g-msg:empty{display:none}
+#gate .g-foot{margin:26px 0 0;font-size:11px;color:#6F8783}
 </style>
 <style id="sound-css">
 /* tombol musik santai: ikon kecil di bar atas */
@@ -900,14 +922,23 @@ html.locked #gate{display:grid}
 <body>
 <script>document.documentElement.classList.add("locked")</script>
 <div id="gate" role="dialog" aria-modal="true" aria-labelledby="gTitle">
-  <form class="g-card" id="gForm" autocomplete="on">
-    <p class="g-brand" id="gTitle">MARKETHINGS</p>
-    <p class="g-sub">Masuk sebagai Marketing</p>
-    <label for="gPw">Password</label>
-    <input type="password" id="gPw" name="password" autocomplete="current-password" required>
-    <button type="submit" id="gBtn">Masuk</button>
-    <p class="g-msg" id="gMsg" role="alert"></p>
-  </form>
+  <div class="g-wrap">
+    <p class="g-logo">Market<span>hings</span></p>
+    <p class="g-tag">EVERYTHING MARKETING IN ONE PLACE</p>
+    <h1 id="gTitle">Kamu masuk sebagai siapa?</h1>
+    <div class="g-roles" id="gRoles">
+      <button type="button" class="g-role" data-role="Marketing" data-note="Lihat dashboard &amp; laporan" aria-pressed="false" style="--rc:#0F766E"><span class="g-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg></span><b>Marketing</b><small>Lihat dashboard</small></button>
+      <button type="button" class="g-role" data-role="Product Development" data-note="Kelola data &amp; pengaturan" aria-pressed="false" style="--rc:#B7791F"><span class="g-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span><b>Product Development</b><small>Kelola data</small></button>
+    </div>
+    <form class="g-card" id="gForm" autocomplete="on" hidden>
+      <p class="g-who" id="gWho">Masuk sebagai Marketing</p>
+      <input type="text" name="username" id="gUser" autocomplete="username" value="Marketing" hidden>
+      <input type="password" id="gPw" name="password" autocomplete="current-password" placeholder="Password" aria-label="Password" required>
+      <div class="g-act"><button type="button" id="gCancel">Batal</button><button type="submit" id="gBtn">Masuk</button></div>
+      <p class="g-msg" id="gMsg" role="alert"></p>
+    </form>
+    <p class="g-foot">Password diperiksa oleh server, tidak tersimpan di halaman ini.</p>
+  </div>
 </div>
 <div id="splash" role="presentation">
   <div class="sp-dim"></div>
@@ -6262,6 +6293,13 @@ function startApp(){
   if (started) return; started = true; document.documentElement.classList.remove("locked");
   writeInputs(); initMotion(); renderSim(); load().then(() => loadSheetSales(true)).then(() => loadEvents()); loadFiles(); navigator.storage?.persist?.().catch(()=>{});
 }
+// pilih peran → kotak password muncul (seperti Poparkner)
+$("#gRoles").onclick = e => { const r = e.target.closest(".g-role"); if (!r) return;
+  document.querySelectorAll("#gRoles .g-role").forEach(x => x.setAttribute("aria-pressed", String(x === r))); $("#gRoles").classList.add("picked");
+  $("#gWho").innerHTML = `Masuk sebagai ${r.dataset.role}<small>${r.dataset.note}</small>`; $("#gUser").value = r.dataset.role;
+  $("#gMsg").textContent = ""; $("#gForm").hidden = false; $("#gPw").focus(); };
+$("#gCancel").onclick = () => { $("#gForm").hidden = true; $("#gPw").value = ""; $("#gMsg").textContent = "";
+  document.querySelectorAll("#gRoles .g-role").forEach(x => x.setAttribute("aria-pressed", "false")); $("#gRoles").classList.remove("picked"); };
 $("#gForm").onsubmit = async e => {
   e.preventDefault(); const pw = $("#gPw").value, b = $("#gBtn"), m = $("#gMsg");
   b.disabled = true; b.textContent = "Memeriksa…"; m.textContent = "";
@@ -6272,7 +6310,7 @@ $("#gForm").onsubmit = async e => {
   if (!TOKEN || (await gateCheck(TOKEN))){ TOKEN = pw; store.set("li.token", pw); }   // token tulis yang sudah tersimpan tetap dipakai
   mode = "live"; startApp();
 };
-(async () => { if (TOKEN && !(await gateCheck(TOKEN))) startApp(); else $("#gPw").focus(); })();
+(async () => { if (TOKEN && !(await gateCheck(TOKEN))) startApp(); })();
 $("#btnSalesReload").onclick = async e => { const b = e.currentTarget; b.disabled = true; if (SALES_SHEET) await loadSheetSales(false); else await load(); b.disabled = false; };
 })();
 </script>
