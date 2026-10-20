@@ -1031,7 +1031,7 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
 <div class="maincol" style="min-width:0">
 <header class="top">
   <div class="wrap topin">
-    <div class="crumb"><span>Pororo Land Bandung</span><span class="sepr">/</span><b id="crumb">Sales Report</b></div>
+    <div class="crumb"><span data-brand="full">Pororo Land Bandung</span><span class="sepr">/</span><b id="crumb">Sales Report</b></div>
     <div class="topr"><div class="note" id="topDate"></div>
       <button type="button" class="snd" id="btnSound" aria-pressed="false" title="Musik santai: nyalakan" aria-label="Musik santai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4z"/><path class="w1" d="M15.5 9.5a3.5 3.5 0 0 1 0 5"/><path class="w2" d="M18.5 7a7 7 0 0 1 0 10"/><path class="x" d="M16 10l5 5M21 10l-5 5"/></svg><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i></button>
       <div class="seg theme-seg" id="themeSeg" role="group" aria-label="Tema tampilan">
@@ -1050,7 +1050,7 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
       <svg class="hero-bg" data-bg="waves" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
       <div class="hero-in">
     <div class="bar">
-      <div class="page-h"><span class="eyebrow">Analitik · Pororo Land</span><h2>Sales Report</h2><p><b id="salesRange"></b><span class="dummy" id="salesDummy">dummy</span><span class="src-line"><span id="salesSrc"></span><button class="btn sm icon" id="btnSalesReload" aria-label="Muat ulang data" title="Muat ulang data">⟳</button></span></p></div>
+      <div class="page-h"><span class="eyebrow">Analitik · <span data-brand="name">Pororo Land</span></span><h2>Sales Report</h2><p><b id="salesRange"></b><span class="dummy" id="salesDummy">dummy</span><span class="src-line"><span id="salesSrc"></span><button class="btn sm icon" id="btnSalesReload" aria-label="Muat ulang data" title="Muat ulang data">⟳</button></span></p></div>
       <div class="grp">
         <div class="seg" id="salesPeriod"><button aria-pressed="false" data-p="3">3 bulan</button><button aria-pressed="false" data-p="6">6 bulan</button><button aria-pressed="true" data-p="12">12 bulan</button></div>
         <button class="btn" id="btnOpenSheet" hidden><svg viewBox="0 0 24 24" width="15" height="15" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Buka data sheet<span aria-hidden="true" style="opacity:.6">🔒</span></button>
@@ -1290,7 +1290,7 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
       </div>
     </div>
       <div class="panel" id="absSegPanel">
-        <h3>Serapan rata-rata per segmen · Pororo Land vs kompetitor</h3>
+        <h3>Serapan rata-rata per segmen · <span data-brand="name">Pororo Land</span> vs kompetitor</h3>
         <p class="desc">Rata-rata unit terjual per bulan tiap cluster, dikelompokkan per segmen dan developer. Segmen tanpa batang berarti developer itu belum punya data stok dan unit terjual di segmen tersebut.</p>
         <div class="chartbox" id="absSegBox"><canvas id="chAbsSeg" aria-label="Serapan rata-rata per segmen per developer"></canvas></div>
         <p class="note" id="absSegEmpty" style="margin:0" hidden></p>
@@ -1342,7 +1342,7 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
       <svg class="hero-bg" data-bg="parcels" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
       <div class="hero-in">
     <div class="bar">
-      <div class="page-h"><span class="eyebrow">Komersial · Pororo Land</span><h2>Lahan Komersial</h2></div>
+      <div class="page-h"><span class="eyebrow">Komersial · <span data-brand="name">Pororo Land</span></span><h2>Lahan Komersial</h2></div>
       <div class="grp"><button class="btn primary" id="btnAddPlot" data-w>+ Tambah kavling</button></div>
     </div>
     <div class="kpis hero-k" id="landKpis"></div>
@@ -1387,7 +1387,7 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
       <svg class="hero-bg" data-bg="curves" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
       <div class="hero-in">
     <div class="bar">
-      <div class="page-h"><span class="eyebrow">Komersial · Pororo Land</span><h2>Simulator Investor</h2></div>
+      <div class="page-h"><span class="eyebrow">Komersial · <span data-brand="name">Pororo Land</span></span><h2>Simulator Investor</h2></div>
       <div class="grp">
         <button class="btn ai" id="btnRecommend" data-ai>Rekomendasi usaha</button>
         <button class="btn ai" id="btnProposal" data-ai>Draft proposal investor</button>
@@ -1542,6 +1542,14 @@ const DEMO = {"competitors": [{"id": "pp-pastigriya", "dummy": true, "isOwn": tr
 
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
+// Nama developer sendiri. Bawaan nama samaran; nama asli dimuat dari Google Sheet (tab Settings, id "brand") setelah masuk,
+// jadi tidak pernah tertulis di file publik ini. Bentuk: {"name":"…","full":"… Kota","short":"…"}.
+const BRAND = {name:"Pororo Land", full:"Pororo Land Bandung", short:"Pororo"};
+function applyBrand(b){
+  if (!b || typeof b !== "object" || !b.name) return;
+  BRAND.name = String(b.name); BRAND.full = String(b.full || b.name); BRAND.short = String(b.short || b.name.split(/\s+/)[0]);
+  document.querySelectorAll("[data-brand]").forEach(el => { el.textContent = el.dataset.brand === "full" ? BRAND.full : el.dataset.brand === "short" ? BRAND.short : BRAND.name; });
+}
 // Panel diseling: bagian ke-1, 3, 5 … tiap segmen bernuansa gelap (.tone), bagian di antaranya tetap polos.
 (function(){ const top = el => [...el.querySelectorAll(".panel")].filter(p => !p.parentElement.closest(".panel"));
   document.querySelectorAll("section.tab").forEach(sec => { const heads = [...sec.querySelectorAll(".sec-h")];
@@ -1727,6 +1735,7 @@ async function load(silent){
     if (j.settings?.macro){ try { MACRO = JSON.parse(j.settings.macro) || {}; store.set("li.macro", j.settings.macro); } catch {} }
     if (j.settings?.ppt){ try { PPT_SET = {...PPT_SET, ...JSON.parse(j.settings.ppt)}; } catch {} }   // indikator makro & target laporan PPT per kuartal
     if (j.settings?.kom){ try { KOM = {...KOM_DEFAULT, ...JSON.parse(j.settings.kom)}; } catch {} }   // ketentuan sewa & jual dipakai bersama lewat Sheet
+    if (j.settings?.brand){ try { applyBrand(JSON.parse(j.settings.brand)); } catch {} }   // nama developer sendiri dari Sheet
     if (j.settings?.katalog){ try { applyKatalog(JSON.parse(j.settings.katalog)); } catch {} }   // nama cluster & tipe asli dari Sheet
     if (salesSource !== "sheet"){
       salesDemo = !(j.sales && j.sales.length); salesSource = salesDemo ? "demo" : "api";
@@ -1824,7 +1833,7 @@ $("#compToggle").onclick = () => { compOpen = !compOpen; store.set("li.showComp"
 // kompetitor yang harganya dari sumber publik / brosur tetapi stok & terjualnya masih angka contoh: yang ditandai dummy hanya angka serapannya
 const absDummy = c => !!c.dummy && !c.isOwn && !!(c.auto || c.source || c.sourceUrl) && absorb(c) !== null;
 const DEV_SHORT = {"Kota Baru Parahyangan":"KBP", "Summarecon Bandung":"Summarecon", "Pororo Land":"Pororo"};
-const devShort = d => DEV_SHORT[d] || (String(d).length <= 12 ? String(d) : String(d).split(/\s+/).length >= 3 ? String(d).split(/\s+/).map(w => w[0]).join("").toUpperCase() : String(d).split(/\s+/)[0]);
+const devShort = d => (d === BRAND.name ? BRAND.short : DEV_SHORT[d]) || (String(d).length <= 12 ? String(d) : String(d).split(/\s+/).length >= 3 ? String(d).split(/\s+/).map(w => w[0]).join("").toUpperCase() : String(d).split(/\s+/)[0]);
 function renderComp(){
   const rows = comps.filter(c => tier==="all" || c.tier===tier);
   renderCompFold(rows);
@@ -1845,18 +1854,18 @@ function renderComp(){
   const ownAbs = own.map(absorb).filter(v => v !== null), othAbs = oth.map(absorb).filter(v => v !== null), byDev = {};
   oth.forEach(c => { const d = byDev[c.developer || "Tanpa nama"] ??= {n:0, a:[]}; d.n++; if (absorb(c) !== null) d.a.push(absorb(c)); });
   const devAbs = Object.entries(byDev).map(([dev, d]) => ({dev, n:d.n, a:d.a.length ? d.a.reduce((x, y) => x + y, 0)/d.a.length : null})).sort((a, b) => b.n - a.n || a.dev.localeCompare(b.dev));
-  $("#heroSub").textContent = `${rows.length} tipe unit dari ${devN} developer kompetitor dan Pororo Land${tier==="all"?"":" · tier "+tier}. ${autoN} di antaranya diambil otomatis dari sumber publik.`;
+  $("#heroSub").textContent = `${rows.length} tipe unit dari ${devN} developer kompetitor dan ${BRAND.name}${tier==="all"?"":" · tier "+tier}. ${autoN} di antaranya diambil otomatis dari sumber publik.`;
   k.innerHTML = `
     <div class="kpi"><div class="l">Produk dipantau</div><div class="v" data-count="${rows.length}" data-fmt="int">${rows.length}</div><div class="s">${devN} developer kompetitor · ${autoN} dari sumber publik</div></div>
-    <div class="kpi"><div class="l">Harga / m² LB · kompetitor</div><div class="v" data-count="${othP}" data-fmt="rp">${rp(othP)}</div><div class="s">Pororo ${rp(ownP)}${gap?` · <span class="${gap>0?"up":"down"}">${gap>0?"+":""}${nf(gap,1)}%</span>`:""}</div></div>
-    <div class="kpi"><div class="l">Serapan rata-rata · kompetitor</div>${othAbs.length ? `<div class="v"><span data-count="${othA}" data-fmt="d1">${nf(othA,1)}</span> <small style="font-size:13px">unit/bln</small></div>` : `<div class="v">–</div>`}<div class="s">${[["Pororo", ownAbs.length ? ownA : null], ...devAbs.slice(0, 3).map(d => [devShort(d.dev), d.a])].map(x => `${esc(x[0])} ${x[1] === null ? "–" : nf(x[1], 1)}`).join(" · ")} unit/bln</div></div>
+    <div class="kpi"><div class="l">Harga / m² LB · kompetitor</div><div class="v" data-count="${othP}" data-fmt="rp">${rp(othP)}</div><div class="s">${BRAND.short} ${rp(ownP)}${gap?` · <span class="${gap>0?"up":"down"}">${gap>0?"+":""}${nf(gap,1)}%</span>`:""}</div></div>
+    <div class="kpi"><div class="l">Serapan rata-rata · kompetitor</div>${othAbs.length ? `<div class="v"><span data-count="${othA}" data-fmt="d1">${nf(othA,1)}</span> <small style="font-size:13px">unit/bln</small></div>` : `<div class="v">–</div>`}<div class="s">${[[BRAND.short, ownAbs.length ? ownA : null], ...devAbs.slice(0, 3).map(d => [devShort(d.dev), d.a])].map(x => `${esc(x[0])} ${x[1] === null ? "–" : nf(x[1], 1)}`).join(" · ")} unit/bln</div></div>
     <div class="kpi"><div class="l">Serapan tertinggi</div>${top?`<div class="v" style="font-size:17px">${esc(top.cluster)}</div><div class="s">${esc(top.developer)} · ${nf(absorb(top),1)} unit/bln</div>`:`<div class="v">–</div><div class="s">belum ada data penjualan</div>`}</div>`;
   { const B = t => `<b>${t}</b>`, list = a => a.length > 1 ? a.slice(0, -1).join(", ") + " dan " + a.at(-1) : a[0] || "", S = [];      // ringkasan 4 panel dalam kalimat
-    S.push(["units", `Dipantau ${B(nf(rows.length) + " tipe unit")}${tier === "all" ? "" : " di segmen " + esc(tier)}: ${nf(own.length)} milik Pororo Land dan ${nf(oth.length)} dari ${nf(devN)} developer kompetitor${devN && devN <= 4 ? " (" + esc(list(devAbs.map(d => d.dev))) + ")" : ""}.`]);
-    if (ownP && othP) S.push(["tag", `Rata-rata harga per m² luas bangunan Pororo Land ${B(rp(ownP))}, ${Math.abs(gap) < .05 ? "sama dengan" : B(`<i class="tr nt" aria-hidden="true">${gap > 0 ? "▲" : "▼"}</i>` + nf(Math.abs(gap), 1) + "% " + (gap > 0 ? "lebih tinggi" : "lebih rendah")) + " dari"} rata-rata kompetitor (${rp(othP)}).`]);
-    else if (ownP || othP) S.push(["tag", `Rata-rata harga per m² luas bangunan ${ownP ? "Pororo Land" : "kompetitor"} ${B(rp(ownP || othP))}; ${ownP ? "kompetitor" : "Pororo Land"} belum punya data harga dan luas bangunan.`]);
+    S.push(["units", `Dipantau ${B(nf(rows.length) + " tipe unit")}${tier === "all" ? "" : " di segmen " + esc(tier)}: ${nf(own.length)} milik ${BRAND.name} dan ${nf(oth.length)} dari ${nf(devN)} developer kompetitor${devN && devN <= 4 ? " (" + esc(list(devAbs.map(d => d.dev))) + ")" : ""}.`]);
+    if (ownP && othP) S.push(["tag", `Rata-rata harga per m² luas bangunan ${BRAND.name} ${B(rp(ownP))}, ${Math.abs(gap) < .05 ? "sama dengan" : B(`<i class="tr nt" aria-hidden="true">${gap > 0 ? "▲" : "▼"}</i>` + nf(Math.abs(gap), 1) + "% " + (gap > 0 ? "lebih tinggi" : "lebih rendah")) + " dari"} rata-rata kompetitor (${rp(othP)}).`]);
+    else if (ownP || othP) S.push(["tag", `Rata-rata harga per m² luas bangunan ${ownP ? BRAND.name : "kompetitor"} ${B(rp(ownP || othP))}; ${ownP ? "kompetitor" : BRAND.name} belum punya data harga dan luas bangunan.`]);
     const withA = devAbs.filter(d => d.a !== null), noA = devAbs.filter(d => d.a === null);
-    S.push(["speed", `Serapan (rata-rata unit terjual per bulan, per cluster)${ownAbs.length ? `: Pororo Land ${B(nf(ownA, 1) + " unit per bulan")}` : ": Pororo Land belum ada data"}${withA.length ? ", " + withA.slice(0, 4).map(d => `${esc(d.dev)} ${B(nf(d.a, 1) + " unit per bulan")}`).join(", ") : ""}.${noA.length ? ` ${esc(list(noA.slice(0, 4).map(d => d.dev)))}${noA.length > 4 ? " dan lainnya" : ""} belum punya data serapan (stok dan unit terjual belum diisi).` : ""}${oth.some(absDummy) ? " Angka serapan kompetitor masih dummy." : ""}`]);
+    S.push(["speed", `Serapan (rata-rata unit terjual per bulan, per cluster)${ownAbs.length ? `: ${BRAND.name} ${B(nf(ownA, 1) + " unit per bulan")}` : ": " + BRAND.name + " belum ada data"}${withA.length ? ", " + withA.slice(0, 4).map(d => `${esc(d.dev)} ${B(nf(d.a, 1) + " unit per bulan")}`).join(", ") : ""}.${noA.length ? ` ${esc(list(noA.slice(0, 4).map(d => d.dev)))}${noA.length > 4 ? " dan lainnya" : ""} belum punya data serapan (stok dan unit terjual belum diisi).` : ""}${oth.some(absDummy) ? " Angka serapan kompetitor masih dummy." : ""}`]);
     if (top) S.push(["star", `Serapan tertinggi: ${B(esc(top.cluster))} milik ${esc(top.developer)}, ${B(nf(absorb(top), 1) + " unit per bulan")}.`]);
     $("#compSum").innerHTML = sumHtml(S); $("#compSum").hidden = false; }
   renderGallery(rows);
@@ -2124,8 +2133,8 @@ function drawCompCharts(rows, animate){
   const scDevs = [...new Set(plotted.filter(c=>!c.isOwn).map(c=>c.developer))].sort(), edge = css("--surface");
   mk("chScatter",{type:"scatter",data:{datasets:[
     ...scDevs.map(d => ({label:d, data:plotted.filter(c=>!c.isOwn && c.developer===d).map(pt), backgroundColor:devColor(d,false), borderColor:edge, borderWidth:1.5, pointRadius:6.5, pointHoverRadius:9})),
-    {label:"Pororo Land", data:plotted.filter(c=>c.isOwn).map(pt), backgroundColor:A, borderColor:edge, borderWidth:1.5, pointRadius:8, pointHoverRadius:10, pointStyle:"rectRot"}]}, options:o}, {text:c => c.raw.c.cluster, size:10, strict:true, filter:c => !!c.raw.c.isOwn});   // label hanya cluster Pororo Land
-  $("#scLegend").innerHTML = (plotted.some(c=>c.isOwn) ? `<span><i style="background:var(--accent);border-radius:2px;transform:rotate(45deg)"></i>Pororo Land</span>` : "")
+    {label:BRAND.name, data:plotted.filter(c=>c.isOwn).map(pt), backgroundColor:A, borderColor:edge, borderWidth:1.5, pointRadius:8, pointHoverRadius:10, pointStyle:"rectRot"}]}, options:o}, {text:c => c.raw.c.cluster, size:10, strict:true, filter:c => !!c.raw.c.isOwn});   // label hanya cluster Pororo Land
+  $("#scLegend").innerHTML = (plotted.some(c=>c.isOwn) ? `<span><i style="background:var(--accent);border-radius:2px;transform:rotate(45deg)"></i>${BRAND.name}</span>` : "")
     + scDevs.map(d => `<span><i style="background:${devColor(d,false)}"></i>${esc(d)}</span>`).join("");
   // saringan segmen khusus grafik serapan (hanya saat halaman menampilkan semua segmen)
   $("#absSeg").hidden = tier !== "all"; if (tier !== "all") absTier = "all";
@@ -2136,7 +2145,7 @@ function drawCompCharts(rows, animate){
   const absLabel = c => c.isOwn ? c.cluster : typeLabel(c), short = v => String(v).length > 26 ? String(v).slice(0, 25) + "…" : String(v);
   const cut = v => { const i = String(v).indexOf(" - "); return i > 0 ? [short(String(v).slice(0, i)), short(String(v).slice(i + 3))] : short(v); };      // nama produk dan tipe dalam dua baris supaya tidak terpotong
   $("#absBox").style.height = Math.max(220, s.length*36 + 60) + "px";
-  const legDevs = list => (list.some(c => c.isOwn) ? `<span><i style="background:var(--accent)"></i>Pororo Land</span>` : "") + [...new Set(list.filter(c => !c.isOwn).map(c => c.developer))].sort().map(d => `<span><i style="background:${devColor(d,false)}"></i>${esc(d)}</span>`).join("");
+  const legDevs = list => (list.some(c => c.isOwn) ? `<span><i style="background:var(--accent)"></i>${BRAND.name}</span>` : "") + [...new Set(list.filter(c => !c.isOwn).map(c => c.developer))].sort().map(d => `<span><i style="background:${devColor(d,false)}"></i>${esc(d)}</span>`).join("");
   $("#absBox").hidden = !s.length; $("#absEmpty").hidden = !!s.length; $("#absEmpty").textContent = s.length ? "" : `Belum ada data serapan${absTier === "all" ? "" : " untuk segmen " + absTier}. Isi stok, unit terjual, dan bulan sejak launching lewat Edit.`;
   $("#absLegend").innerHTML = legDevs(s);
   const ob = chartBase(); ob.indexAxis="y"; ob.scales.y.grid={display:false};
@@ -2146,7 +2155,7 @@ function drawCompCharts(rows, animate){
   if (s.length) mk("chAbs",{type:"bar",data:{labels:s.map(c=>cut(absLabel(c))),datasets:[{data:s.map(absorb),backgroundColor:s.map(c=>c.isOwn?A:devColor(c.developer,false)),borderRadius:3,barThickness:14}]},options:ob}, {fmt:v => nf(v,1)});
   // serapan rata-rata per segmen, satu batang per developer (warna developer sama dengan grafik lain)
   const withA = rows.filter(c => absorb(c) !== null), segs = TIERS.filter(t => withA.some(c => c.tier === t));
-  const dv = [...(withA.some(c => c.isOwn) ? [{name:"Pororo Land", own:true}] : []), ...[...new Set(withA.filter(c => !c.isOwn).map(c => c.developer))].sort().map(d => ({name:d, own:false}))];
+  const dv = [...(withA.some(c => c.isOwn) ? [{name:BRAND.name, own:true}] : []), ...[...new Set(withA.filter(c => !c.isOwn).map(c => c.developer))].sort().map(d => ({name:d, own:false}))];
   const cell = (d, t) => withA.filter(c => c.tier === t && (d.own ? c.isOwn : !c.isOwn && c.developer === d.name)).map(absorb);
   $("#absSegBox").hidden = !segs.length; $("#absSegEmpty").hidden = !!segs.length; $("#absSegEmpty").textContent = segs.length ? "" : "Belum ada data serapan untuk dibandingkan.";
   renderTypeAbs();
@@ -2176,13 +2185,13 @@ function renderTypeAbs(){
   const row = x => `<div class="abs-row${x.own ? " own" : ""}" title="${esc([x.name, x.dev, x.sub].filter(Boolean).join(" · ") + ": " + fmt(x.v) + " unit/bln. " + x.tip)}"><span class="l"><b>${esc(x.name)}</b><small>${esc(x.own ? x.sub : [devShort(x.dev), x.sub].filter(Boolean).join(" · "))}</small></span><span class="v">${fmt(x.v)} <small>unit/bln</small></span><span class="tr"><i style="width:${x.v > 0 ? Math.max(1.5, x.v/max*100) : 0}%;background:${x.own ? "var(--accent)" : devColor(x.dev, false)}"></i></span></div>`;
   el.innerHTML = segs.length ? segs.map(t => { const L = T.filter(x => x.seg === t).sort((a, b) => b.v - a.v || a.name.localeCompare(b.name)), own = L.filter(x => x.own), oth = L.filter(x => !x.own), SHOW = 8;
       const avg = a => a.length ? nf(a.reduce((s2, x) => s2 + x.v, 0)/a.length, 1) : null;
-      return `<div class="abs-seg"><h4>${esc(t)}</h4><p class="sub">${[own.length ? `Pororo Land ${nf(own.length)} tipe, rata-rata ${avg(own)}` : "", oth.length ? `kompetitor ${nf(oth.length)} tipe, rata-rata ${avg(oth)}` : "kompetitor belum ada data"].filter(Boolean).join(" · ")}</p>
+      return `<div class="abs-seg"><h4>${esc(t)}</h4><p class="sub">${[own.length ? `${BRAND.name} ${nf(own.length)} tipe, rata-rata ${avg(own)}` : "", oth.length ? `kompetitor ${nf(oth.length)} tipe, rata-rata ${avg(oth)}` : "kompetitor belum ada data"].filter(Boolean).join(" · ")}</p>
         ${(() => { const top = L.slice(0, SHOW); oth.filter(x => !top.includes(x)).slice(0, Math.max(0, 3 - top.filter(x => !x.own).length)).forEach(x => top.push(x)); top.sort((a, b) => b.v - a.v || a.name.localeCompare(b.name)); const rest = L.filter(x => !top.includes(x));      // kompetitor selalu tampil (paling sedikit 3)
           return top.map(row).join("") + (rest.length ? `<details class="abs-more"><summary>+${nf(rest.length)} tipe lain</summary>${rest.map(row).join("")}</details>` : ""); })()}</div>`; }).join("")
     : `<p class="note" style="margin:0">Belum ada data serapan. Isi stok, unit terjual, dan bulan sejak launching lewat Edit.</p>`;
-  $("#absTypeLegend").innerHTML = (T.some(x => x.own) ? `<span><i style="background:var(--accent)"></i>Pororo Land</span>` : "") + [...new Set(T.filter(x => !x.own).map(x => x.dev))].sort().map(d => `<span><i style="background:${devColor(d, false)}"></i>${esc(d)}</span>`).join("");
-  const notes = []; if (T.some(x => x.split)) notes.push("Pororo Land: serapan tiap cluster dibagi ke tipe-tipenya menurut porsi penjualan tiap tipe di rekap, jadi jumlah semua tipe sama dengan serapan clusternya.");
-  if (T.some(x => x.own && !x.split)) notes.push("Cluster Pororo Land yang belum punya rincian tipe di tab STOK ditampilkan sebagai satu baris.");
+  $("#absTypeLegend").innerHTML = (T.some(x => x.own) ? `<span><i style="background:var(--accent)"></i>${BRAND.name}</span>` : "") + [...new Set(T.filter(x => !x.own).map(x => x.dev))].sort().map(d => `<span><i style="background:${devColor(d, false)}"></i>${esc(d)}</span>`).join("");
+  const notes = []; if (T.some(x => x.split)) notes.push(BRAND.name + ": serapan tiap cluster dibagi ke tipe-tipenya menurut porsi penjualan tiap tipe di rekap, jadi jumlah semua tipe sama dengan serapan clusternya.");
+  if (T.some(x => x.own && !x.split)) notes.push("Cluster " + BRAND.name + " yang belum punya rincian tipe di tab STOK ditampilkan sebagai satu baris.");
   if (T.some(x => x.dummy)) notes.push("Angka serapan masih dummy.");
   $("#absTypeNote").textContent = notes.join(" ");
 }
@@ -2254,7 +2263,7 @@ function renderGallery(rows){
   const K = PIC_KINDS.find(x => x.k === gal.pic) || PIC_KINDS[0], pic = c => c[K.k], anyPic = c => okImg(c.image) || okImg(c.plan);
   const nPhoto = rows.filter(anyPic).length; if (!gal.picked) gal.show = nPhoto ? "photo" : "all";
   $("#galPic").querySelectorAll("button").forEach(b => { b.setAttribute("aria-pressed", b.dataset.k === gal.pic); const kk = PIC_KINDS.find(x => x.k === b.dataset.k); b.textContent = `${kk.L} (${nf(rows.filter(c => okImg(c[kk.k])).length)})`; });      // sebelum dipilih sendiri: tampilkan yang berfoto bila ada
-  const devs = [...new Set(rows.map(c => c.developer).filter(Boolean))].sort((a, b) => (b === OWN_DEV) - (a === OWN_DEV) || a.localeCompare(b)); if (gal.dev !== "all" && !devs.includes(gal.dev)) gal.dev = "all";
+  const devs = [...new Set(rows.map(c => c.developer).filter(Boolean))].sort((a, b) => (b === BRAND.name) - (a === BRAND.name) || a.localeCompare(b)); if (gal.dev !== "all" && !devs.includes(gal.dev)) gal.dev = "all";
   $("#galDev").innerHTML = `<option value="all">Semua developer</option>` + devs.map(d => `<option${d === gal.dev ? " selected" : ""}>${esc(d)}</option>`).join("");
   $("#galShow").querySelectorAll("button").forEach(b => { b.setAttribute("aria-pressed", b.dataset.v === gal.show); if (b.dataset.v === "photo") b.textContent = `Dengan gambar (${nf(nPhoto)})`; else b.textContent = `Semua tipe (${nf(rows.length)})`; });
   $("#galSort").value = gal.sort;
@@ -3104,7 +3113,7 @@ const COMP_F = [
   ["price","Harga (Rp)","number"],["stock","Total unit","number"],["sold","Unit terjual","number"],["months","Bulan sejak launching","number"],
   ["promo","Promo / skema bayar","text","full"],["priceBasis","Dasar harga (cash / KPR / mulai)","text"],["sourceDate","Tanggal sumber","text"],
   ["source","Nama sumber","text"],["sourceUrl","Link sumber","url"],
-  ["notes","Catatan","textarea","full"],["isOwn","Produk Pororo Land","checkbox"]];
+  ["notes","Catatan","textarea","full"],["isOwn","Produk " + BRAND.name,"checkbox"]];
 const PLOT_F = [
   ["code","Kode kavling","text"],["zone","Zona","text"],["area","Luas (m²)","number"],["frontage","Frontage (m)","number"],
   ["use","Peruntukan","text"],["status","Status","select",["Available","Reserved","Sold","Leased"]],
@@ -4171,29 +4180,29 @@ $("#btnInsight").onclick = () => {
   const viz = (() => { const list = comps.filter(c => tier === "all" || c.tier === tier), avg = a => a.length ? a.reduce((x, y) => x + y, 0)/a.length : null, by = {};
     list.forEach(c => { const d = by[c.developer || "Tanpa nama"] ??= {n:0, pm:[], own:!!c.isOwn}; d.n++; if (pm2(c) !== null) d.pm.push(pm2(c)); });
     const devs = Object.entries(by).map(([dev, d]) => ({dev, n:d.n, pm:avg(d.pm), own:d.own})), po = avg(list.filter(c => c.isOwn && pm2(c) !== null).map(pm2)), pc = avg(list.filter(c => !c.isOwn && pm2(c) !== null).map(pm2));
-    const leg = [["own", "Pororo Land"], ["", "Kompetitor"]], cls = d => d.own ? "own" : "cmp";
+    const leg = [["own", BRAND.name], ["", "Kompetitor"]], cls = d => d.own ? "own" : "cmp";
     return {facts:[{l:"Produk dibandingkan", v:nf(list.length) + " tipe", s:`${nf(devs.length)} developer` + (tier === "all" ? "" : ` · segmen ${tier}`)},
-        po !== null ? {l:"Harga per m² LB · Pororo Land", v:rp(po), s:"rata-rata semua tipe"} : null, pc !== null ? {l:"Harga per m² LB · kompetitor", v:rp(pc), s:po !== null ? `Pororo Land ${po >= pc ? "lebih tinggi" : "lebih rendah"} ${nf(Math.abs(po - pc)/pc*100, 1)}%` : "rata-rata semua tipe"} : null].filter(Boolean),
+        po !== null ? {l:"Harga per m² LB · " + BRAND.name, v:rp(po), s:"rata-rata semua tipe"} : null, pc !== null ? {l:"Harga per m² LB · kompetitor", v:rp(pc), s:po !== null ? `${BRAND.name} ${po >= pc ? "lebih tinggi" : "lebih rendah"} ${nf(Math.abs(po - pc)/pc*100, 1)}%` : "rata-rata semua tipe"} : null].filter(Boolean),
       charts:[{t:"Rata-rata harga per m² LB", legend:leg, rows:devs.filter(d => d.pm !== null).sort((a, b) => b.pm - a.pm).slice(0, 7).map(d => ({l:d.dev, v:d.pm, txt:rp(d.pm), cls:cls(d)}))},
         {t:"Jumlah tipe per developer", legend:leg, rows:devs.sort((a, b) => b.n - a.n).slice(0, 7).map(d => ({l:d.dev, v:d.n, txt:nf(d.n), cls:cls(d)}))},
-        ...(SB ? [{t:"Pembelian Pororo Land per segmen", sub:SB.periode_pola_pembelian, rows:SB.per_segmen.filter(g => g.porsi_pembelian_pct !== null).map(g => ({l:g.kelompok, v:g.porsi_pembelian_pct, txt:g.porsi_pembelian_pct + "%"}))}] : [])]}; })();
+        ...(SB ? [{t:"Pembelian " + BRAND.name + " per segmen", sub:SB.periode_pola_pembelian, rows:SB.per_segmen.filter(g => g.porsi_pembelian_pct !== null).map(g => ({l:g.kelompok, v:g.porsi_pembelian_pct, txt:g.porsi_pembelian_pct + "%"}))}] : [])]}; })();
   runAI($("#insightOut"), $("#insightBody"),
-`Kamu analis riset pasar properti residensial di Bandung untuk tim Prodev Pororo Land.
-Data produk (milik_kita=true adalah produk Pororo Land; null = data tidak tersedia), filter tier: ${tier}:
+`Kamu analis riset pasar properti residensial di Bandung untuk tim Prodev ${BRAND.name}.
+Data produk (milik_kita=true adalah produk ${BRAND.name}; null = data tidak tersedia), filter tier: ${tier}:
 ${JSON.stringify(rows)}
 ${SB ? `
-Pola pembelian dan stok Pororo Land sendiri (${SB.periode_pola_pembelian}; sumber stok: ${SB.sumber}${salesDemo ? "; data penjualan dummy" : ""}):
+Pola pembelian dan stok ${BRAND.name} sendiri (${SB.periode_pola_pembelian}; sumber stok: ${SB.sumber}${salesDemo ? "; data penjualan dummy" : ""}):
 ${JSON.stringify(SB)}
 ` : ""}
 Tulis dalam Bahasa Indonesia, ringkas dan tajam:
 ## Posisi harga
-2-3 poin: posisi harga/m² Pororo vs kompetitor per tier, sebut angka.
+2-3 poin: posisi harga/m² ${BRAND.short} vs kompetitor per tier, sebut angka.
 ## Serapan pasar
 2-3 poin: siapa yang paling laku dan dugaan faktornya. Sebut bila data serapan kompetitor tidak tersedia.
 ${SB ? `## Pola pembelian & stok
-3 poin: pembeli Pororo Land paling banyak membeli di segmen apa, berapa kamar tidur, dan berapa lantai (sebut porsi %); sisa stok kelompok itu tinggal berapa %; lalu bandingkan dengan yang ditawarkan kompetitor di kelompok yang sama (jumlah tipe, harga, kamar tidur / lantai). Sebut bila data kamar tidur atau lantai kompetitor belum tersedia.
+3 poin: pembeli ${BRAND.name} paling banyak membeli di segmen apa, berapa kamar tidur, dan berapa lantai (sebut porsi %); sisa stok kelompok itu tinggal berapa %; lalu bandingkan dengan yang ditawarkan kompetitor di kelompok yang sama (jumlah tipe, harga, kamar tidur / lantai). Sebut bila data kamar tidur atau lantai kompetitor belum tersedia.
 ` : ""}## Rekomendasi
-3 poin aksi konkret untuk Pororo Land (pricing, promo, spesifikasi produk${SB ? ", tipe yang perlu ditambah stoknya" : ""}).
+3 poin aksi konkret untuk ${BRAND.name} (pricing, promo, spesifikasi produk${SB ? ", tipe yang perlu ditambah stoknya" : ""}).
 Gunakan bullet "- " dan **bold** untuk angka penting. Perhatikan tanggal sumber; sebut bila datanya lama. Jangan mengarang data.`, viz);
 };
 $("#insightClose").onclick=()=>$("#insightOut").hidden=true;
@@ -4462,7 +4471,7 @@ $("#btnRecommend").onclick = () => {
   if(!curPlot()) return toast("Pilih kavling dulu");
   $("#simOutTitle").textContent="Rekomendasi usaha · AI";
   runAI($("#simOut"), $("#simBody"),
-`Kamu konsultan pengembangan lahan komersial di township Pororo Land Bandung (kawasan perumahan menengah-atas di Bandung selatan, dekat kampus Telkom University dan Buahbatu).
+`Kamu konsultan pengembangan lahan komersial di township ${BRAND.full} (kawasan perumahan menengah-atas di Bandung selatan, dekat kampus Telkom University dan Buahbatu).
 Data kavling, asumsi, dan konteks pasar (kompetitor residensial menunjukkan daya beli penghuni sekitar):
 ${JSON.stringify(simContext())}
 
@@ -4477,7 +4486,7 @@ $("#btnProposal").onclick = () => {
   if(!curPlot()) return toast("Pilih kavling dulu");
   $("#simOutTitle").textContent="Draft proposal investor · AI";
   runAI($("#simOut"), $("#simBody"),
-`Buat draft one-pager penawaran investasi kavling komersial Pororo Land Bandung untuk calon investor, Bahasa Indonesia, nada profesional dan meyakinkan tapi jujur.
+`Buat draft one-pager penawaran investasi kavling komersial ${BRAND.full} untuk calon investor, Bahasa Indonesia, nada profesional dan meyakinkan tapi jujur.
 Data:
 ${JSON.stringify(simContext())}
 
@@ -5001,7 +5010,7 @@ const segColor = seg => `hsl(${SEG_HUE[seg] ?? 220} ${seg==="Lainnya"?10:62}% 46
 const ana = {gran:"month", metric:"unit", from:null, to:null, seg:"all"};
 // ---------- stok per tipe: tab STOK di Google Sheet yang sama dengan rekap penjualan ----------
 // Kolom tab STOK: CLUSTER, TIPE, SEGMEN, LT, LB, KT, KM, LANTAI, TOTAL UNIT (satu baris per tipe). Terjual dihitung dashboard dari data penjualan.
-const STOCK_TAB = "STOK", HUNIAN = ["Milenial","Deluxe","Premium"], OWN_DEV = "Pororo Land";
+const STOCK_TAB = "STOK", HUNIAN = ["Milenial","Deluxe","Premium"];
 let sheetStock = null, lastStockSig = "", demoStockCache = null, stockUI = {g:"kt"};
 const typeBase = v => String(v||"").replace(/\s+(standard|standar|std|hook)\s*$/i, "").trim();
 const skey = (cl, ty) => tnorm(cl) + "|" + tnorm(typeBase(ty));
@@ -5163,10 +5172,10 @@ function renderStock(A){
   const line = (name, x, own, items) => { const g = items ? groupList(items) : null;
     return `<div class="cmp-l${own ? " own" : ""}"><b>${esc(name)}</b><span>${[nf(x.n) + " tipe", range(x.min, x.max), x.left !== null ? "sisa " + pctTxt(x.left) : ""].filter(Boolean).join(" · ")}</span>${g && g.full ? `<small>${g.full.split(" · ").map(esc).join("<br>")}</small>` : ""}</div>`; };
   const cmpCell = (a, c) => { const pr = a.list.map(r => r.price).filter(v => v > 0);      // baris Pororo Land dulu (disorot), lalu tiap developer kompetitor
-    return line(OWN_DEV, {n:a.n, min:pr.length ? Math.min(...pr) : null, max:pr.length ? Math.max(...pr) : null, left:a.pct}, true, dim === "cluster" ? a.list.map(r => [r.type, ""]) : a.list.map(r => [r.cluster, r.type === "Semua tipe" ? "" : r.type]))
+    return line(BRAND.name, {n:a.n, min:pr.length ? Math.min(...pr) : null, max:pr.length ? Math.max(...pr) : null, left:a.pct}, true, dim === "cluster" ? a.list.map(r => [r.type, ""]) : a.list.map(r => [r.cluster, r.type === "Semua tipe" ? "" : r.type]))
       + (c && c.n ? c.devs.slice(0, 4).map(d => line(d.dev, d, false, d.items.map(compItem))).join("") + (c.devs.length > 4 ? `<div class="cmp-l"><span>+${nf(c.devs.length - 4)} developer lain</span></div>` : "") : `<div class="cmp-l"><span>Kompetitor: belum ada data</span></div>`); };
   let anyComp = null;
-  $("#stTable").innerHTML = `<thead><tr><th>${dim === "type" ? "Tipe" : D.l[0].toUpperCase() + D.l.slice(1)}</th>${dim === "type" ? "" : `<th class="n">Tipe</th>`}<th class="n">Total</th><th class="n">Terjual</th><th class="n">Sisa</th><th>% sisa</th><th class="n">Laju / bln</th><th class="n">Habis dalam</th>${dim === "type" ? "" : `<th class="n">Porsi beli ${nf(A.P)} bln</th>`}${hasComp ? `<th>${esc(OWN_DEV)} vs kompetitor</th>` : ""}</tr></thead><tbody>${
+  $("#stTable").innerHTML = `<thead><tr><th>${dim === "type" ? "Tipe" : D.l[0].toUpperCase() + D.l.slice(1)}</th>${dim === "type" ? "" : `<th class="n">Tipe</th>`}<th class="n">Total</th><th class="n">Terjual</th><th class="n">Sisa</th><th>% sisa</th><th class="n">Laju / bln</th><th class="n">Habis dalam</th>${dim === "type" ? "" : `<th class="n">Porsi beli ${nf(A.P)} bln</th>`}${hasComp ? `<th>${esc(BRAND.name)} vs kompetitor</th>` : ""}</tr></thead><tbody>${
     G.map(a => { const lv = stockLevel(a), r = a.list[0], c = hasComp ? compFor(dim, a.label) : null; if (c) anyComp = c;
       const name = dim === "type" ? `${esc(r.type)}<small>${esc([r.cluster, num(r.kt) ? nf(r.kt) + " KT" : "", num(r.km) ? nf(r.km) + " KM" : "", num(r.floors) ? nf(r.floors) + " lantai" : "", num(r.lb) ? "LB " + nf(r.lb) : ""].filter(Boolean).join(" · "))}</small>` : esc(a.label);
       return `<tr><td>${name}</td>${dim === "type" ? "" : `<td class="n">${nf(a.n)}</td>`}<td class="n">${nf(a.total)}</td><td class="n">${nf(a.sold)}</td><td class="n">${nf(a.left)}</td>
@@ -5176,7 +5185,7 @@ function renderStock(A){
   const missN = Object.values(V.miss).reduce((a, b) => a + b, 0), notes = [];
   if (missN) notes.push(`${nf(missN)} penjualan belum punya baris di ${st === "demo" ? "stok contoh" : "tab " + STOCK_TAB} (${Object.keys(V.miss).slice(0, 4).join(", ")}${Object.keys(V.miss).length > 4 ? ", …" : ""}), jadi tidak ikut dihitung.`);
   if (hasComp && anyComp && dim !== "seg") notes.push(`Kompetitor yang sudah punya data ${D.l}: ${nf(anyComp.withData)} dari ${nf(anyComp.all)} tipe. Lengkapi lewat Ekstrak brosur atau Edit di Market Research.`);
-  if (hasComp) notes.push(`Harga ${OWN_DEV} = rata-rata harga jual unit standar per tipe dari rekap penjualan; harga kompetitor = harga di pricelist / brosur.`);
+  if (hasComp) notes.push(`Harga ${BRAND.name} = rata-rata harga jual unit standar per tipe dari rekap penjualan; harga kompetitor = harga di pricelist / brosur.`);
   notes.push("Hampir habis = sisa ≤ 10%, Menipis = sisa ≤ 25%, Lambat = sisa ≥ 70% tanpa penjualan 6 bulan.");
   $("#stNote").textContent = notes.join(" ");
 }
@@ -5900,7 +5909,7 @@ async function buildQuarterPpt(q){
   const D = quarterData(q), T = quarterText(D), QL = qLabel(q), NQL = qLabel(D.nq);
   const C = {navy:"14253A", navy2:"1A2C3D", or:"E8913A", lt:"F0F4F7", ln:"D0DCE6", mid:"3D5A73", mut:"A0B4C6", ink:"1F2D3A", gr:"5E7183", wh:"FFFFFF"}, HF = "Cambria", BF = "Calibri";
   const W = 13.333, X = .45, CW = W - 2*X;
-  const pptx = new PptxGenJS(); pptx.layout = "LAYOUT_WIDE"; pptx.author = "Prodev · Pororo Land Bandung"; pptx.company = "Pororo Land"; pptx.title = `Laporan Serapan Penjualan ${QL}`;
+  const pptx = new PptxGenJS(); pptx.layout = "LAYOUT_WIDE"; pptx.author = "Prodev · " + BRAND.full; pptx.company = BRAND.name; pptx.title = `Laporan Serapan Penjualan ${QL}`;
   const R = (s, x, y, w, h, fill, line) => s.addShape(pptx.ShapeType.rect, {x, y, w, h, fill:{color:fill}, line:line ? {color:line, width:.75} : {color:fill, width:0}});
   const Tx = (s, t, o) => s.addText(t, {fontFace:BF, fontSize:11, color:C.ink, margin:0, valign:"top", ...o});
   const CONF = "This report contains confidential internal sales data. Reproduction, distribution, or disclosure to external parties without prior written consent is strictly prohibited.";
@@ -5925,7 +5934,7 @@ async function buildQuarterPpt(q){
     dataLabelFontFace:BF, dataLabelFontSize:8, dataLabelColor:C.ink, legendFontFace:BF, legendFontSize:9, legendColor:C.ink};
   const M = v => Math.round(v/1e7)/100;      // Rp → miliar, 2 desimal
   const empty = (s, x, y, w, h, t) => { R(s, x, y, w, h, C.lt, C.ln); Tx(s, t, {x:x + .3, y, w:w - .6, h, fontSize:11, italic:true, color:C.gr, align:"center", valign:"middle"}); };
-  const SALES_SRC = "Data internal penjualan Pororo Land (REKAP ALL TIME, STOK)", MR_SRC = "Market research MARKETHINGS (situs resmi developer, pricelist, berita)";
+  const SALES_SRC = "Data internal penjualan " + BRAND.name + " (REKAP ALL TIME, STOK)", MR_SRC = "Market research MARKETHINGS (situs resmi developer, pricelist, berita)";
   const monthsTxt = D.ms.map(k => MONTHS_FULL[+k.slice(5,7)-1]).join(" ") + " " + q.slice(0,4);
   const scene = await pptImg((getComputedStyle(document.documentElement).getPropertyValue("--scene").match(/url\(["']?(data:[^"')]+)/) || [])[1], W/3.6, "cover", 1800);
 
@@ -5936,16 +5945,16 @@ async function buildQuarterPpt(q){
     Tx(s, "LAPORAN SERAPAN PENJUALAN & MARKET RESEARCH", {x:.6, y:3.78, w:10, h:.28, fontSize:9, charSpacing:5, color:C.or, valign:"middle"});
     Tx(s, `Kuartal Q${q.slice(-1)} – Tahun ${q.slice(0,4)}`, {x:.6, y:4.2, w:11, h:.9, fontFace:HF, fontSize:36, bold:true, color:C.wh, valign:"middle"});
     if (D.partial || salesDemo) Tx(s, [D.partial ? `Kuartal berjalan · data s/d ${keyLabel(D.end)}` : "", salesDemo ? "DATA DUMMY" : ""].filter(Boolean).join(" · "), {x:.6, y:5.12, w:10, h:.3, fontSize:10, bold:true, color:C.or, valign:"middle"});
-    Tx(s, "Prodev  •  Pororo Land Bandung", {x:.6, y:5.9, w:10, h:.3, fontSize:12, color:C.wh, valign:"middle"});
+    Tx(s, "Prodev  •  " + BRAND.full, {x:.6, y:5.9, w:10, h:.3, fontSize:12, color:C.wh, valign:"middle"});
     Tx(s, monthsTxt, {x:.6, y:6.3, w:10, h:.25, fontSize:9.5, color:C.mut, valign:"middle"});
-    Tx(s, "Data for Internal Use Only  |  Pororo Land Bandung – Prodev", {x:7, y:7.05, w:W - 7.45, h:.25, fontSize:7, color:C.mut, align:"right", valign:"middle"}); }
+    Tx(s, "Data for Internal Use Only  |  " + BRAND.full + " – Prodev", {x:7, y:7.05, w:W - 7.45, h:.25, fontSize:7, color:C.mut, align:"right", valign:"middle"}); }
 
   // 2 · daftar isi
   { const s = pptx.addSlide(); s.background = {color:C.lt};
     Tx(s, "Daftar Isi", {x:.6, y:.45, w:6, h:.55, fontFace:HF, fontSize:26, bold:true, color:C.navy, valign:"middle"});
     Tx(s, `Laporan Serapan Penjualan · ${QL}`, {x:.6, y:1.02, w:6, h:.25, fontSize:9.5, color:C.or, valign:"middle"}); R(s, .6, 1.35, 3.4, .05, C.or);
     const items = [["Ringkasan Eksekutif", "Unit terjual, revenue, highlight & risiko kuartal ini"], ["Data Serapan Per Cluster", "Unit terjual vs tersedia per tipe, per cluster"], ["Serapan Free PPN", "Unit yang memenuhi syarat PPN DTP"], ["Revenue Penjualan", "Per bulan, per cluster & year-to-date"],
-      ["Profil Pembeli", "Usia, tujuan pembelian, dan cara bayar"], ["Analisis Kompetitor", "Per segmen: produk pembanding vs Pororo Land"], ["Update Market", "Inflasi, suku bunga, kurs, keyakinan konsumen"], ["Rencana & Rekomendasi", `Target dan strategi ${NQL}`]];
+      ["Profil Pembeli", "Usia, tujuan pembelian, dan cara bayar"], ["Analisis Kompetitor", "Per segmen: produk pembanding vs " + BRAND.name], ["Update Market", "Inflasi, suku bunga, kurs, keyakinan konsumen"], ["Rencana & Rekomendasi", `Target dan strategi ${NQL}`]];
     items.forEach(([t, d], i) => { const col = i < 4 ? 0 : 1, row = i % 4, x = .6 + col*6.3, y = 1.85 + row*1.25;
       Tx(s, String(i + 1).padStart(2, "0"), {x, y, w:.7, h:.45, fontFace:HF, fontSize:20, bold:true, color:C.or, valign:"middle"});
       Tx(s, t, {x:x + .8, y, w:5, h:.35, fontFace:HF, fontSize:14, bold:true, color:C.navy, valign:"middle"});
@@ -6118,7 +6127,7 @@ async function buildQuarterPpt(q){
     const oc = comps.find(c => c.isOwn && pKey(c.cluster) === pKey(cl.name)) || {}, types = D.rows.filter(r => r.cluster === cl.name), sold = D.N.filter(x => x.cluster === cl.name), ps = sold.map(x => num(x.price)).filter(v => v > 0);
     const tot = types.reduce((a, r) => a + r.total, 0), out = types.reduce((a, r) => a + r.toEnd, 0);
     const pick = (k, alt) => { const v = types.map(r => num(r[k])).filter(x => x > 0); return v.length ? v : [num(alt)]; };
-    return {own:true, dev:"Pororo Land", name:cl.name, sub:`Buahbatu · ${seg} · terjual ${nf(cl.units)} unit di ${QL}`, types:types.map(r => r.type).filter(t => t && t !== "Semua tipe"), img:null,
+    return {own:true, dev:BRAND.name, name:cl.name, sub:`Buahbatu · ${seg} · terjual ${nf(cl.units)} unit di ${QL}`, types:types.map(r => r.type).filter(t => t && t !== "Semua tipe"), img:null,
       lt:pick("lt", oc.lt), lb:pick("lb", oc.lb), kt:pick("kt", oc.kt), km:pick("km", oc.km),
       price:ps.length ? rng(ps, rp) + `  (harga jual ${QL})` : num(oc.price) ? rp(oc.price) + "  (price list)" : "Belum ada penjualan", minP:ps.length ? Math.min(...ps) : num(oc.price), maxP:ps.length ? Math.max(...ps) : num(oc.price), avg:ps.length ? ps.reduce((a, v) => a + v, 0)/ps.length : num(oc.price),
       absorb:tot ? `Sold ${pctS(out/tot*100)} (${nf(out)}/${nf(tot)} unit) · ${nf(cl.units/3, 1)} unit/bln di ${QL}` : `Terjual ${nf(cl.units)} unit di ${QL}`, src:"data penjualan internal"}; };
@@ -6129,7 +6138,7 @@ async function buildQuarterPpt(q){
     if (rc.every(k => k.none)) continue;
     const pTxt = k => k.none || !k.minP ? null : k.minP === k.maxP ? rp(k.minP) : `${rp(k.minP)} – ${rp(k.maxP)}`.replace(/^Rp (\S+) M – Rp (\S+) M$/, "Rp $1–$2 M");
     const key = `${seg}: ` + [own, ...rc].filter(k => !k.none).map(k => `${k.own ? k.name : k.dev} ${pTxt(k) || "(harga –)"}`).join("  vs  ");
-    const s = page(`PERBANDINGAN PRODUK  –  ${seg.toUpperCase()}  –  ${QL}`, `${rivals.join(" vs ")} vs Pororo Land · produk terbaru di segmen ${seg}`, key, "Market research MARKETHINGS · data penjualan internal");
+    const s = page(`PERBANDINGAN PRODUK  –  ${seg.toUpperCase()}  –  ${QL}`, `${rivals.join(" vs ")} vs ${BRAND.name} · produk terbaru di segmen ${seg}`, key, "Market research MARKETHINGS · data penjualan internal");
     for (let i = 0; i < rc.length; i++) await card(s, X + i*(cardW + .3), rc[i]);
     await card(s, X + 2*(cardW + .3), own); segSlides++; }
   if (!segSlides){ const s = page(`PERBANDINGAN PRODUK  –  ${QL}`, "Produk pembanding per segmen", "Belum ada produk kompetitor di segmen yang sama dengan produk kita", MR_SRC); empty(s, X, 1.95, CW, 4.9, "Tambahkan data kompetitor di Market Research"); }
@@ -6195,9 +6204,9 @@ async function buildQuarterPpt(q){
     Tx(s, "PORORO LAND BANDUNG", {x:.6, y:3.85, w:10, h:.28, fontSize:9, charSpacing:5, color:C.or, valign:"middle"});
     Tx(s, "Terima Kasih", {x:.6, y:4.25, w:10, h:.9, fontFace:HF, fontSize:40, bold:true, color:C.wh, valign:"middle"});
     Tx(s, `Laporan Serapan Penjualan  |  ${QL}`, {x:.6, y:5.25, w:10, h:.3, fontSize:12, color:C.wh, valign:"middle"});
-    Tx(s, "Prodev  •  Pororo Land Bandung", {x:.6, y:5.65, w:10, h:.3, fontSize:10, color:C.mut, valign:"middle"});
-    Tx(s, "Data for Internal Use Only  |  Pororo Land Bandung – Prodev", {x:7, y:7.05, w:W - 7.45, h:.25, fontSize:7, color:C.mut, align:"right", valign:"middle"}); }
-  return {pptx, D, fileName:`Laporan-Kuartal-${QL.replace(" ", "-")}-Pororo-Land${salesDemo ? "-DUMMY" : ""}.pptx`};
+    Tx(s, "Prodev  •  " + BRAND.full, {x:.6, y:5.65, w:10, h:.3, fontSize:10, color:C.mut, valign:"middle"});
+    Tx(s, "Data for Internal Use Only  |  " + BRAND.full + " – Prodev", {x:7, y:7.05, w:W - 7.45, h:.25, fontSize:7, color:C.mut, align:"right", valign:"middle"}); }
+  return {pptx, D, fileName:`Laporan-Kuartal-${QL.replace(" ", "-")}-${BRAND.name.replace(/\s+/g, "-")}${salesDemo ? "-DUMMY" : ""}.pptx`};
 }
 
 function openPptReport(){
@@ -6255,7 +6264,7 @@ $("#btnSalesAI").onclick = () => {
         rows:SB.per_kamar_tidur.filter(g => g.sisa_pct !== null).map(g => ({l:g.kelompok.replace(" kamar tidur", " KT").replace(/\s*\(.*\)/, ""), bars:[{name:"porsi pembelian", v:g.porsi_pembelian_pct || 0, txt:(g.porsi_pembelian_pct ?? 0) + "% beli", cls:"own"},
           {name:"sisa stok", v:g.sisa_pct, txt:g.sisa_pct + "% sisa", cls:"cmp", flag:g.sisa_pct <= 10 ? "hampir habis" : g.sisa_pct <= 25 ? "menipis" : ""}]}))}] : [])]};
   runAI($("#salesOut"), $("#salesBody"),
-`Kamu analis penjualan properti untuk Pororo Land Bandung. Data penjualan ${salesP} bulan terakhir (nilai dalam rupiah):
+`Kamu analis penjualan properti untuk ${BRAND.full}. Data penjualan ${salesP} bulan terakhir (nilai dalam rupiah):
 ${JSON.stringify(brief)}
 
 Tulis dalam Bahasa Indonesia, ringkas:
