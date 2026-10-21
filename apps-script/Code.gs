@@ -320,7 +320,12 @@ const NEWS_TOPICS = [
 const NEWS_FALLBACK = ['https://www.cnbcindonesia.com/market/rss', 'https://www.cnbcindonesia.com/news/rss', 'https://www.antaranews.com/rss/ekonomi.xml', 'https://www.antaranews.com/rss/ekonomi-bisnis.xml'];
 const TICKERS_DEFAULT = '^JKSE,IDR=X,EIDO,BSDE.JK,CTRA.JK,SMRA.JK,PWON.JK';
 const TICKERS_DAILY = ['^JKSE', 'IDR=X'];   // selalu diambil, dengan riwayat harian 1 tahun untuk grafik
-const TICKER_NAME = { '^JKSE': 'IHSG', 'IDR=X': 'USD/IDR', 'EIDO': 'MSCI Indonesia', 'BSDE.JK': 'BSDE', 'CTRA.JK': 'CTRA', 'SMRA.JK': 'SMRA', 'PWON.JK': 'PWON', 'APLN.JK': 'APLN', 'LPKR.JK': 'LPKR', 'DMAS.JK': 'DMAS' };
+const TICKER_NAME = { '^JKSE': 'IHSG', 'IDR=X': 'USD/IDR', 'EIDO': 'MSCI Indonesia', 'BSDE.JK': 'Bumi Serpong Damai', 'CTRA.JK': 'Ciputra Development', 'SMRA.JK': 'Summarecon Agung', 'PWON.JK': 'Pakuwon Jati', 'LPKR.JK': 'Lippo Karawaci', 'DMAS.JK': 'Puradelta Lestari' };
+// situs resmi, dipakai dashboard untuk menampilkan logo (ikon situs) tiap simbol
+const TICKER_DOMAIN = { '^JKSE': 'idx.co.id', 'EIDO': 'ishares.com', 'BSDE.JK': 'sinarmasland.com', 'CTRA.JK': 'ciputra.com', 'SMRA.JK': 'summarecon.com', 'PWON.JK': 'pakuwon.com', 'LPKR.JK': 'lippokarawaci.co.id', 'DMAS.JK': 'deltamas.id' };
+const tickerCode = tk => tk === '^JKSE' ? 'JKSE' : tk === 'IDR=X' ? 'USDIDR' : tk.replace(/\.JK$/, '');
+/** Simbol tambahan dari tab Settings (id "markets"): [{"t":"KODE.JK","name":"Nama emiten","domain":"situs.com"}]. Tidak perlu mengubah kode. */
+function marketConf() { try { const r = readTable('Settings').find(x => String(x.id) === 'markets'); const a = r && r.value ? JSON.parse(r.value) : []; return Array.isArray(a) ? a.filter(x => x && /^[\^A-Z0-9.=-]{2,15}$/i.test(String(x.t || ''))) : []; } catch (e) { return []; } }
 function dailyExternal() { try { fetchExternal(prop('EXT_AI_DAILY') === '1'); } catch (e) {} }   // tanpa AI, kecuali EXT_AI_DAILY = 1
 function dailyMarket() { try { refreshMarket(0); } catch (e) {} }
 /** Harga terbaru IHSG, kurs, dan saham (tanpa berita & AI). Dipakai grafik harian; maxAgeMin = umur maksimum data tersimpan sebelum diambil ulang. */
@@ -367,8 +372,8 @@ function fetchNews(errs) {
 }
 /** Harga penutupan harian 6 bulan terakhir dari Yahoo Finance (tanpa kunci API). */
 function fetchMarket(errs) {
-  const own = String(prop('MARKET_TICKERS') || TICKERS_DEFAULT).split(',').map(x => x.trim()).filter(Boolean);
-  const list = TICKERS_DAILY.concat(own.filter(t => TICKERS_DAILY.indexOf(t) < 0)).slice(0, 12), out = [];
+  const conf = marketConf(), own = String(prop('MARKET_TICKERS') || TICKERS_DEFAULT).split(',').map(x => x.trim()).filter(Boolean).concat(conf.map(x => String(x.t).trim()));
+  const list = TICKERS_DAILY.concat(own.filter((t, i) => TICKERS_DAILY.indexOf(t) < 0 && own.indexOf(t) === i)).slice(0, 14), out = [];
   list.forEach(tk => {
     try {
       const j = JSON.parse(fetchText('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(tk) + '?range=' + (TICKERS_DAILY.indexOf(tk) >= 0 ? '1y' : '6mo') + '&interval=1d'));
@@ -382,7 +387,8 @@ function fetchMarket(errs) {
       if (TICKERS_DAILY.indexOf(tk) >= 0 && pts.length > 260) pts.splice(0, pts.length - 260);
       const last = pts[pts.length - 1][1], at = days => { const lim = pts[pts.length - 1][0] - days * 86400; let v = pts[0][1]; pts.forEach(p => { if (p[0] <= lim) v = p[1]; }); return v; };
       const pct = (a, b) => b ? Math.round((a / b - 1) * 1000) / 10 : null;
-      out.push({ t: tk, name: TICKER_NAME[tk] || tk.replace(/\.JK$/, ''), cur: (r.meta && r.meta.currency) || '', last: Math.round(last * 100) / 100, date: new Date(pts[pts.length - 1][0] * 1000 + 7 * 3600e3).toISOString().slice(0, 10),
+      const cf = conf.find(x => x.t === tk) || {}, yName = String((r.meta && (r.meta.longName || r.meta.shortName)) || '').replace(/^PT\.?\s+/i, '').replace(/,?\s*Tbk\.?$/i, '').trim();
+      out.push({ t: tk, code: tickerCode(tk), name: cf.name || TICKER_NAME[tk] || yName || tickerCode(tk), domain: cf.domain || TICKER_DOMAIN[tk] || '', cur: (r.meta && r.meta.currency) || '', last: Math.round(last * 100) / 100, date: new Date(pts[pts.length - 1][0] * 1000 + 7 * 3600e3).toISOString().slice(0, 10),
         d1: pct(last, pts[pts.length - 2][1]), m1: pct(last, at(30)), m3: pct(last, at(91)), m6: pct(last, at(182)), y1: pct(last, pts[0][1]),
         time: new Date(pts[pts.length - 1][0] * 1000).toISOString(),
         series: TICKERS_DAILY.indexOf(tk) >= 0 ? pts.map(p => [new Date(p[0] * 1000 + 7 * 3600e3).toISOString().slice(0, 10), Math.round(p[1] * 100) / 100]) : undefined,

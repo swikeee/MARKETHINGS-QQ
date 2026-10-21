@@ -564,7 +564,7 @@ table.sched{width:100%;min-width:0;table-layout:auto} .sched td{white-space:norm
 .ext-last .nm{font-weight:600;font-size:14px;width:100%} .ext-last .px{font:600 26px var(--f-body);letter-spacing:-.02em;font-variant-numeric:tabular-nums} .ext-last .ch{font-size:13px;font-weight:600} .ext-last .dt{font-size:12px;color:var(--muted)}
 .ext-k{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px} .ext-k .kpi .v{font-size:22px}
 .ext-k .kpi .s b{font-weight:600} .pos{color:var(--ok)} .neg{color:var(--bad)} .neu{color:var(--muted)}
-.ext-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+.ext-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
 @media (max-width:900px){.ext-grid{grid-template-columns:1fr}}
 .ext-mood{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);margin-bottom:8px}
 .ext-mood.positif{background:var(--ok-soft);color:var(--ok)} .ext-mood.waspada{background:var(--warn-soft);color:var(--warn)} .ext-mood.negatif{background:var(--bad-soft);color:var(--bad)}
@@ -577,7 +577,9 @@ table.sched{width:100%;min-width:0;table-layout:auto} .sched td{white-space:norm
 .ext-lists{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px} .ext-lists h4{margin:0 0 4px;font-size:13px} .ext-lists ul{margin:0;padding-left:18px}
 @media (max-width:600px){.ext-lists{grid-template-columns:1fr}}
 .ext-mk{width:100%;min-width:0;border-collapse:collapse;font-size:13px} #extSec .tablewrap{border:0;background:transparent} .ext-mk th,.ext-mk td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-.ext-mk th:first-child,.ext-mk td:first-child{text-align:left} .ext-mk th{font-weight:500;color:var(--muted);font-size:12px;background:transparent} .ext-mk td:first-child{white-space:normal} .ext-mk td.sp{width:72px;min-width:60px} .ext-mk .spark{height:24px;margin:0}
+.ext-mk th:first-child,.ext-mk td:first-child{text-align:left} .ext-mk th{font-weight:500;color:var(--muted);font-size:12px;background:transparent} .ext-mk td:first-child{white-space:normal}
+.ext-mk .tk{display:flex;align-items:center;gap:8px} .ext-mk .tk small{color:var(--muted);font-size:11px;white-space:nowrap}
+.ext-mk .lg{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:#fff;overflow:hidden} .ext-mk .lg img{width:18px;height:18px;object-fit:contain} .ext-mk .lg b{font-size:10px;color:#1A1020} .ext-mk td.sp{width:64px;min-width:56px} .ext-mk td:first-child{min-width:150px} .ext-mk .spark{height:24px;margin:0}
 .ext-news{display:grid;gap:0} .ext-nt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end}
 .ext-news .n{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--line)} .ext-news .n:last-child{border-bottom:0}
 .ext-news a{color:var(--ink);text-decoration:none;font-weight:500;line-height:1.4} .ext-news a:hover{text-decoration:underline}
@@ -1885,6 +1887,9 @@ const extPct = v => { if (v === null || v === undefined || !isFinite(v)) return 
 const extAgo = iso => { const t = Date.parse(iso); if (!t) return ""; const h = (Date.now() - t) / 36e5;
   return h < 1 ? "baru saja" : h < 24 ? `${Math.floor(h)} jam lalu` : h < 24*7 ? `${Math.floor(h/24)} hari lalu` : new Date(t).toLocaleDateString("id-ID", {day:"numeric", month:"short"}); };
 let mktDays = 91, mktReqAt = 0;
+const tkCode = m => m.code || (m.t === "^JKSE" ? "JKSE" : String(m.t || "").replace(/\.JK$/, ""));
+/** Logo = ikon situs resmi emiten (layanan ikon Google); bila gagal dimuat, tampil inisial kode. */
+const tkLogo = m => { const c = esc(tkCode(m).slice(0, 2)); return m.domain ? `<span class="lg"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(m.domain)}&sz=64" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('b'),{textContent:'${c}'}))"></span>` : `<span class="lg"><b>${c}</b></span>`; };
 const ID_MON3 = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 const dLabel = d => { const [y, m, dd] = String(d).split("-"); return `${+dd} ${ID_MON3[+m - 1] || ""}${mktDays > 200 ? " " + y.slice(2) : ""}`; };
 /** Grafik garis harian IHSG / kurs dengan label hanya di titik terakhir. */
@@ -1927,7 +1932,7 @@ function renderExternal(){
   $("#extKpis").innerHTML = k || `<p class="note" style="margin:0">Indikator belum tersedia.</p>`;
   // tabel pasar modal
   $("#extMarket").innerHTML = mk.length ? `<thead><tr><th>Indeks / saham</th><th>Terakhir</th><th>1 bln</th><th>3 bln</th><th>6 bln</th><th>Tren 6 bln</th></tr></thead><tbody>${
-    mk.filter(m => m.t !== "IDR=X").map(m => `<tr title="${esc(m.t)} · ${esc(m.date || "")} · 1 hari ${m.d1 ?? "–"}%"><td>${esc(m.name)}</td><td>${nf(m.last, m.last < 100 ? 2 : 0)}</td><td>${extPct(m.m1)}</td><td>${extPct(m.m3)}</td><td>${extPct(m.m6)}</td><td class="sp">${sparkSvg(m.spark || [])}</td></tr>`).join("")}</tbody>`
+    mk.filter(m => m.t !== "IDR=X").map(m => `<tr title="${esc(m.t)} · ${esc(m.date || "")} · 1 hari ${m.d1 ?? "–"}%"><td><span class="tk">${tkLogo(m)}<span>${esc(m.name)} <small>(${esc(tkCode(m))})</small></span></span></td><td>${nf(m.last, m.last < 100 ? 2 : 0)}</td><td>${extPct(m.m1)}</td><td>${extPct(m.m3)}</td><td>${extPct(m.m6)}</td><td class="sp">${sparkSvg(m.spark || [])}</td></tr>`).join("")}</tbody>`
     : `<tbody><tr><td class="note">Data pasar modal belum diambil.</td></tr></tbody>`;
   // bacaan AI
   const A = ["positif","netral","waspada","negatif"], li = a => (Array.isArray(a) ? a : []).map(x => `<li>${esc(x)}</li>`).join("");

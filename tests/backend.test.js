@@ -363,6 +363,7 @@ console.log(process.exitCode ? '\nADA YANG GAGAL' : `\nSemua ${n} uji backend lu
   env2.props.WRITE_TOKEN = 'w'; env2.props.READ_TOKEN = 'r'; env2.props.ANTHROPIC_API_KEY = 'k';
   const rss = (t) => `<?xml version="1.0"?><rss><channel><item><title><![CDATA[${t} - Kontan]]></title><link>https://news.google.com/x/${encodeURIComponent(t)}</link><pubDate>Mon, 19 Oct 2026 02:00:00 GMT</pubDate><source url="https://kontan.co.id">Kontan</source></item><item><title>Berita lama &amp; lain - CNBC</title><link>https://news.google.com/y</link><pubDate>Fri, 16 Oct 2026 02:00:00 GMT</pubDate></item></channel></rss>`;
   const chart = { chart: { result: [{ meta: { currency: 'IDR' }, timestamp: Array.from({ length: 120 }, (_, i) => 1760000000 + i * 86400), indicators: { quote: [{ close: Array.from({ length: 120 }, (_, i) => 7000 + i * 10) }] } }] } };
+  B.upsert('Settings', { id: 'markets', value: JSON.stringify([{ t: 'XYZ.JK', name: 'Emiten Uji', domain: 'uji.co.id' }, { t: 'bad ticker!' }]) });
   let aiCalls = 0;
   env2.setFetch(url => {
     if (url.includes('news.google.com/rss')) { const q = decodeURIComponent(url.split('q=')[1].split('&')[0]); return { code: 200, type: 'application/rss+xml', body: rss('Judul ' + q.split(' ')[0]) }; }
@@ -375,7 +376,7 @@ console.log(process.exitCode ? '\nADA YANG GAGAL' : `\nSemua ${n} uji backend lu
   const r = post2('refreshExternal', {}, 'w'), e = r.external || {};
   ok('eksternal: berita per topik terbaca dari RSS, sumber dipisah dari judul', r.ok && e.news.length >= 5 && e.news.every(n => n.topic && n.link.startsWith('https://') && !/ - Kontan$/.test(n.title)) && e.news.some(n => n.source === 'Kontan'), JSON.stringify(e.news && e.news[0]));
   ok('eksternal: berita sama tidak dobel', new Set(e.news.map(n => n.title)).size === e.news.length);
-  ok('eksternal: IHSG & MSCI terbaca dengan % perubahan; ticker gagal dicatat, tidak menggagalkan lainnya', e.market.length === 6 && e.market[0].t === '^JKSE' && e.market[1].t === 'IDR=X' && e.market[1].name === 'USD/IDR' && e.market[0].series.length === 120 && /^\d{4}-\d{2}-\d{2}$/.test(e.market[0].series[0][0]) && !e.market[2].series && e.market.find(m => m.t === '^JKSE').name === 'IHSG' && e.market.find(m => m.t === 'EIDO').name === 'MSCI Indonesia' && e.market[0].m1 > 0 && e.market[0].spark.length > 10 && /PWON/.test(e.err), e.err);
+  ok('eksternal: IHSG & MSCI terbaca dengan % perubahan; ticker gagal dicatat, tidak menggagalkan lainnya', e.market.length === 7 && e.market.some(m => m.t === 'XYZ.JK' && m.code === 'XYZ' && m.name === 'Emiten Uji' && m.domain === 'uji.co.id') && e.market.find(m => m.t === 'BSDE.JK').name === 'Bumi Serpong Damai' && e.market.find(m => m.t === 'BSDE.JK').code === 'BSDE' && e.market[0].t === '^JKSE' && e.market[1].t === 'IDR=X' && e.market[1].name === 'USD/IDR' && e.market[0].series.length === 120 && /^\d{4}-\d{2}-\d{2}$/.test(e.market[0].series[0][0]) && !e.market[2].series && e.market.find(m => m.t === '^JKSE').name === 'IHSG' && e.market.find(m => m.t === 'EIDO').name === 'MSCI Indonesia' && e.market[0].m1 > 0 && e.market[0].spark.length > 10 && /PWON/.test(e.err), e.err);
   ok('eksternal: Perbarui tidak memanggil AI', aiCalls === 0 && !e.brief);
   ok('eksternal: Marketing tidak bisa memicu bacaan AI', post2('briefExternal', {}, 'r').error === 'unauthorized' && aiCalls === 0);
   const rb = post2('briefExternal', {}, 'w'); e.brief = rb.external && rb.external.brief; e.briefAt = rb.external && rb.external.briefAt;
@@ -385,7 +386,7 @@ console.log(process.exitCode ? '\nADA YANG GAGAL' : `\nSemua ${n} uji backend lu
   ok('eksternal: ikut terbaca Marketing lewat snapshot (tanpa memanggil AI lagi)', JSON.parse(snap.settings.external).brief.suasana === 'netral' && aiCalls === 1);
   env2.setFetch(() => ({ code: 503, body: '' }));
   const r2 = post2('refreshExternal', {}, 'w').external;
-  ok('eksternal: semua sumber gagal → data lama dipertahankan, alasan tercatat', r2.news.length === e.news.length && r2.market.length === 6 && r2.brief.ringkasan === 'Pasar stabil.' && /HTTP 503/.test(r2.err), r2.err.slice(0, 120));
+  ok('eksternal: semua sumber gagal → data lama dipertahankan, alasan tercatat', r2.news.length === e.news.length && r2.market.length === 7 && r2.brief.ringkasan === 'Pasar stabil.' && /HTTP 503/.test(r2.err), r2.err.slice(0, 120));
   ok('eksternal: jadwal harian 06.00 WIB terpasang', env2.triggers.includes('dailyExternal'));
   ok('pasar: jadwal harga penutupan 17.00 WIB terpasang', env2.triggers.includes('dailyMarket'));
   { let yh = 0; env2.setFetch(url => { if (url.includes('finance.yahoo.com')) { yh++; const c = JSON.parse(JSON.stringify(chart)); c.chart.result[0].meta.regularMarketPrice = 9999; c.chart.result[0].meta.regularMarketTime = 1760000000 + 120 * 86400 + 3600; return { code: 200, type: 'application/json', body: JSON.stringify(c) }; } return { code: 404, body: '' }; });
