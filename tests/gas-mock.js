@@ -44,7 +44,7 @@ function makeEnv(codePath){
     Logger: { log: m => log.push(String(m)) }, console,
   };
   const ctx = vm.createContext(g);
-  vm.runInContext(fs.readFileSync(codePath, 'utf8') + '\n;this.__api = {setup, doGet, doPost, selfTest, readTable, SHEETS, onEdit, onSheetChange, revision, syncAll, weeklySync, upsert};', ctx, {filename:'Code.gs'});
+  vm.runInContext(fs.readFileSync(codePath, 'utf8') + '\n;this.__api = {setup, doGet, doPost, selfTest, readTable, SHEETS, onEdit, onSheetChange, revision, syncAll, weeklySync, upsert, dailyExternal, dailyMarket};', ctx, {filename:'Code.gs'});
   return { api: ctx.__api, sheets, props, drive, triggers, weekdays, log, state, setFetch: f => { fetchImpl = f; } };
 }
 function serve(env, port){

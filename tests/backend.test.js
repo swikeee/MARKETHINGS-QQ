@@ -376,7 +376,11 @@ console.log(process.exitCode ? '\nADA YANG GAGAL' : `\nSemua ${n} uji backend lu
   ok('eksternal: berita per topik terbaca dari RSS, sumber dipisah dari judul', r.ok && e.news.length >= 5 && e.news.every(n => n.topic && n.link.startsWith('https://') && !/ - Kontan$/.test(n.title)) && e.news.some(n => n.source === 'Kontan'), JSON.stringify(e.news && e.news[0]));
   ok('eksternal: berita sama tidak dobel', new Set(e.news.map(n => n.title)).size === e.news.length);
   ok('eksternal: IHSG & MSCI terbaca dengan % perubahan; ticker gagal dicatat, tidak menggagalkan lainnya', e.market.length === 6 && e.market[0].t === '^JKSE' && e.market[1].t === 'IDR=X' && e.market[1].name === 'USD/IDR' && e.market[0].series.length === 120 && /^\d{4}-\d{2}-\d{2}$/.test(e.market[0].series[0][0]) && !e.market[2].series && e.market.find(m => m.t === '^JKSE').name === 'IHSG' && e.market.find(m => m.t === 'EIDO').name === 'MSCI Indonesia' && e.market[0].m1 > 0 && e.market[0].spark.length > 10 && /PWON/.test(e.err), e.err);
-  ok('eksternal: bacaan AI tersimpan', e.brief && e.brief.ringkasan === 'Pasar stabil.' && aiCalls === 1 && !!e.briefAt);
+  ok('eksternal: Perbarui tidak memanggil AI', aiCalls === 0 && !e.brief);
+  ok('eksternal: Marketing tidak bisa memicu bacaan AI', post2('briefExternal', {}, 'r').error === 'unauthorized' && aiCalls === 0);
+  const rb = post2('briefExternal', {}, 'w'); e.brief = rb.external && rb.external.brief; e.briefAt = rb.external && rb.external.briefAt;
+  ok('eksternal: bacaan AI disusun dari data tersimpan (1 panggilan)', rb.ok && e.brief && e.brief.ringkasan === 'Pasar stabil.' && aiCalls === 1 && !!e.briefAt && rb.external.news.length === e.news.length);
+  B.dailyExternal(); ok('eksternal: jadwal pagi tanpa AI (bawaan)', aiCalls === 1 && JSON.parse(B.doGet({ parameter: { token: 'r' } }).text).settings.external.includes('Pasar stabil.'));
   const snap = JSON.parse(B.doGet({ parameter: { token: 'r' } }).text);
   ok('eksternal: ikut terbaca Marketing lewat snapshot (tanpa memanggil AI lagi)', JSON.parse(snap.settings.external).brief.suasana === 'netral' && aiCalls === 1);
   env2.setFetch(() => ({ code: 503, body: '' }));

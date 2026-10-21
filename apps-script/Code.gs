@@ -16,6 +16,7 @@
  *                      jadi Sheet rekap TIDAK perlu dibagikan "Anyone with the link".
  *   MODEL              opsional: default "claude-sonnet-5-5"
  *   AI_DAILY_LIMIT     opsional: batas jumlah panggilan AI per hari (default 150; 0 = tanpa batas). Pengaman saldo API.
+ *   EXT_AI_DAILY       opsional: isi 1 supaya jadwal pagi juga menyusun bacaan AI Kondisi eksternal (bawaan: tanpa AI)
  *   MARKET_TICKERS     opsional: kode Yahoo Finance untuk panel Kondisi eksternal, dipisah koma
  *                      (bawaan: ^JKSE,EIDO,BSDE.JK,CTRA.JK,SMRA.JK,PWON.JK). Tambahkan saham developer sendiri bila perlu.
  *   EFFORT             opsional: effort untuk Insight AI & Ringkasan AI. Default "low"; bisa medium | high | xhigh | max | off
@@ -42,7 +43,7 @@ const SHEETS = {
 };
 // Kolom yang harus tetap teks: cegah Sheets mengubah tanggal jadi Date, kode kavling jadi angka, atau nomor telepon kehilangan angka 0 di depan
 const TEXT_COLS = { Sales: ['date','akadDate'], Leads: ['month'], Offers: ['date','plotCode','contact','tenant'], Plots: ['code','poly','drawingId'], Competitors: ['sourceDate','cluster','unitType','image','plan'], Files: ['name'], Settings: ['id','value'], Events: ['id','name','start','end','notes'] };
-const WRITE_ACTIONS = ['refreshExternal','saveCompetitor','savePlot','saveOffer','saveSource','delete','deleteMany','import','saveFile','deleteFile','saveSetting','saveEvent','deleteEvent','selfTest','refreshMacro'];
+const WRITE_ACTIONS = ['refreshExternal','briefExternal','saveCompetitor','savePlot','saveOffer','saveSource','delete','deleteMany','import','saveFile','deleteFile','saveSetting','saveEvent','deleteEvent','selfTest','refreshMacro'];
 const NUMERIC = ['size','leads','visits','lt','lb','price','stock','sold','months','area','frontage','priceM2','rentM2','x','y','w','h','oldPrice','newPrice','changePct','term','inst','kt','km','floors'];
 const BOOL = ['isOwn','auto','dummy','active'];
 const MAX_TEXT = 60000;
@@ -191,7 +192,8 @@ function handle(action, p) {
       case 'getFile':        return out({ ok: true, ...getFile(p.id) });      // isi file arsip (brosur) untuk dipotong fotonya di laporan PPT
       case 'getImage':       return out({ ok: true, ...getImage(p.url) });    // gambar tipe dari situs developer (tanpa izin CORS) untuk laporan PPT
       case 'syncNow':        { try { fetchMacro(); } catch (e) {} return out({ ok: true, ...syncAll('manual', true) }); }
-      case 'refreshExternal': return out({ ok: true, external: fetchExternal(true) });   // berita, pasar modal & bacaan AI (panel Kondisi eksternal)
+      case 'refreshExternal': return out({ ok: true, external: fetchExternal(false) });   // berita & pasar modal, TANPA AI (panel Kondisi eksternal)
+      case 'briefExternal':   return out({ ok: true, external: briefExternal() });       // susun ulang bacaan AI dari data yang sudah ada (1 panggilan AI)
       case 'refreshMacro':   return out({ ok: true, macro: fetchMacro() });   // kurs JISDOR, BI-Rate, inflasi dari bi.go.id
       case 'fetchUrl':       return out({ ok: true, ...fetchOne(p.url, p.note, p.developer) });
       case 'ai':             return out({ ok: true, text: aiText([{ type: 'text', text: String(p.prompt || '').slice(0, 180000) }], 2500, aiEffort()), effort: aiEffort() || 'default', provider: aiProvider() });
@@ -319,7 +321,7 @@ const NEWS_FALLBACK = ['https://www.cnbcindonesia.com/market/rss', 'https://www.
 const TICKERS_DEFAULT = '^JKSE,IDR=X,EIDO,BSDE.JK,CTRA.JK,SMRA.JK,PWON.JK';
 const TICKERS_DAILY = ['^JKSE', 'IDR=X'];   // selalu diambil, dengan riwayat harian 1 tahun untuk grafik
 const TICKER_NAME = { '^JKSE': 'IHSG', 'IDR=X': 'USD/IDR', 'EIDO': 'MSCI Indonesia', 'BSDE.JK': 'BSDE', 'CTRA.JK': 'CTRA', 'SMRA.JK': 'SMRA', 'PWON.JK': 'PWON', 'APLN.JK': 'APLN', 'LPKR.JK': 'LPKR', 'DMAS.JK': 'DMAS' };
-function dailyExternal() { try { fetchExternal(true); } catch (e) {} }
+function dailyExternal() { try { fetchExternal(prop('EXT_AI_DAILY') === '1'); } catch (e) {} }   // tanpa AI, kecuali EXT_AI_DAILY = 1
 function dailyMarket() { try { refreshMarket(0); } catch (e) {} }
 /** Harga terbaru IHSG, kurs, dan saham (tanpa berita & AI). Dipakai grafik harian; maxAgeMin = umur maksimum data tersimpan sebelum diambil ulang. */
 function refreshMarket(maxAgeMin) {
@@ -405,6 +407,16 @@ Balas HANYA JSON valid, Bahasa Indonesia, tanpa teks lain:
  "pantau":["2-4 hal yang perlu dipantau minggu-minggu ke depan"],
  "saran":["2-4 saran konkret untuk marketing / product development"]}
 Faktor 4-6 butir, urut dari yang paling berpengaruh.`;
+/** Bacaan AI saja, dari berita & harga yang sudah tersimpan (tanpa mengambil ulang). */
+function briefExternal() {
+  if (!aiProvider()) throw new Error('Kunci AI belum diisi di Script Properties');
+  const ext = readExternal(); if (!(ext.news && ext.news.length) && !(ext.market && ext.market.length)) throw new Error('Data berita & pasar belum ada. Klik Perbarui dulu.');
+  const b = parseJson(aiText([{ type: 'text', text: EXT_PROMPT(readMacro(), ext.market || [], (ext.news || []).slice(0, 40)) }], 2200, aiEffort()));
+  if (!b || !b.ringkasan) throw new Error('Hasil AI tidak lengkap');
+  ext.brief = b; ext.briefAt = now();
+  upsert('Settings', { id: 'external', value: JSON.stringify(ext), updatedAt: now() }); bumpRev();
+  return ext;
+}
 function readExternal() { try { const r = readTable('Settings').find(x => String(x.id) === 'external'); return r && r.value ? JSON.parse(r.value) : {}; } catch (e) { return {}; } }
 function fetchExternal(withAi) {
   const errs = [], cur = readExternal(), market = fetchMarket(errs), news = fetchNews(errs);
