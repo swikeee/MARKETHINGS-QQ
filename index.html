@@ -578,7 +578,7 @@ table.sched{width:100%;min-width:0;table-layout:auto} .sched td{white-space:norm
 @media (max-width:600px){.ext-lists{grid-template-columns:1fr}}
 .ext-mk{width:100%;min-width:0;border-collapse:collapse;font-size:13px} #extSec .tablewrap{border:0;background:transparent} .ext-mk th,.ext-mk td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 .ext-mk th:first-child,.ext-mk td:first-child{text-align:left} .ext-mk th{font-weight:500;color:var(--muted);font-size:12px;background:transparent} .ext-mk td:first-child{white-space:normal} .ext-mk td.sp{width:72px;min-width:60px} .ext-mk .spark{height:24px;margin:0}
-.ext-news{display:grid;gap:0}
+.ext-news{display:grid;gap:0} .ext-nt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end}
 .ext-news .n{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--line)} .ext-news .n:last-child{border-bottom:0}
 .ext-news a{color:var(--ink);text-decoration:none;font-weight:500;line-height:1.4} .ext-news a:hover{text-decoration:underline}
 .ext-news .m{font-size:12px;color:var(--muted)} .ext-news .tg{font-size:11px;color:var(--muted);white-space:nowrap;align-self:start}
@@ -1304,8 +1304,9 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
         <div class="panel" id="extBriefPanel"><div class="ph" style="margin-bottom:8px"><h3>Bacaan untuk bisnis properti</h3><button class="btn sm ai" id="btnExtBrief" hidden title="Memakai 1 panggilan AI">Susun bacaan AI</button></div><div id="extBrief"></div></div>
         <div class="panel"><h3>Pasar modal</h3><p class="desc">Harga penutupan terakhir dan perubahannya dalam 1, 3, dan 6 bulan. MSCI Indonesia diwakili ETF iShares MSCI Indonesia (EIDO, dalam USD).</p><div class="tablewrap"><table class="ext-mk" id="extMarket"></table></div></div>
       </div>
-      <div class="panel"><div class="ph" style="margin-bottom:8px"><h3>Berita terbaru</h3><div class="seg" id="extTopic" aria-label="Saring berita per topik"></div></div>
-        <div class="ext-news" id="extNews"></div></div>
+      <div class="panel"><div class="ph" style="margin-bottom:8px"><h3>Berita terbaru <span class="note" id="extNewsN" style="font-weight:400"></span></h3>
+          <div class="ext-nt"><div class="seg" id="extTopic" aria-label="Saring berita per topik"></div><button type="button" class="btn sm tgl" id="extNewsTgl" aria-expanded="true" aria-controls="extNewsBody"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg><span>Sembunyikan</span></button></div></div>
+        <div id="extNewsBody"><div class="ext-news" id="extNews"></div></div></div>
     </div>
     <div class="sec reveal">
       <div class="sec-h"><span class="eyebrow">02</span><h2>Peta developer</h2><p class="note">Ringkasan tiap developer: jumlah produk, rentang harga, dan komposisi tier.</p></div>
@@ -1878,7 +1879,7 @@ const absDummy = c => !!c.dummy && !c.isOwn && !!(c.auto || c.source || c.source
 const DEV_SHORT = {"Kota Baru Parahyangan":"KBP", "Summarecon Bandung":"Summarecon", "Pororo Land":"Pororo"};
 const devShort = d => (d === BRAND.name ? BRAND.short : DEV_SHORT[d]) || (String(d).length <= 12 ? String(d) : String(d).split(/\s+/).length >= 3 ? String(d).split(/\s+/).map(w => w[0]).join("").toUpperCase() : String(d).split(/\s+/)[0]);
 // ---------- kondisi eksternal: berita, pasar modal, dan bacaan dampaknya ke properti ----------
-let EXT = readJson("li.ext") || {}, extTopic = "all";
+let EXT = readJson("li.ext") || {}, extTopic = "all", extNewsOpen = store.get("li.extNews") !== "0";
 const EXT_TOPICS = [["all","Semua"],["modal","Pasar modal & MSCI"],["bunga","Suku bunga & KPR"],["properti","Properti & kebijakan"],["ekonomi","Ekonomi & daya beli"],["lokal","Bandung & sekitarnya"]];
 const extPct = v => { if (v === null || v === undefined || !isFinite(v)) return `<span class="neu">–</span>`; v = Math.round(v * 10) / 10 || 0; return `<span class="${v > 0 ? "pos" : v < 0 ? "neg" : "neu"}">${v > 0 ? "+" : ""}${nf(v, 1)}%</span>`; };
 const extAgo = iso => { const t = Date.parse(iso); if (!t) return ""; const h = (Date.now() - t) / 36e5;
@@ -1937,7 +1938,9 @@ function renderExternal(){
     <p class="note" style="margin:10px 0 0">Disusun AI ${esc(extAgo(EXT.briefAt))} dari indikator dan berita di halaman ini. Periksa berita aslinya sebelum dipakai untuk keputusan.</p>`
     : `<p class="note" style="margin:0">${mode !== "live" ? "Bacaan dampak muncul setelah dashboard tersambung ke Google Sheet." : EXT.fetchedAt ? (aiReady ? "Bacaan AI belum disusun. Product Development bisa klik Susun bacaan AI (memakai 1 panggilan AI)." : "Bacaan AI belum tersedia: kunci AI belum diisi di Script Properties. Berita dan harga tetap diperbarui tanpa AI.") : "Data kondisi eksternal belum diambil. Jadwal otomatis berjalan tiap pagi 06.00 WIB, atau klik Perbarui (Product Development)."}</p>`;
   // berita
-  const seg = $("#extTopic"), have = new Set(news.map(n => n.topic));
+  const seg = $("#extTopic"), have = new Set(news.map(n => n.topic)), tg = $("#extNewsTgl");
+  $("#extNewsBody").hidden = !extNewsOpen; seg.hidden = !extNewsOpen; tg.setAttribute("aria-expanded", String(extNewsOpen)); tg.querySelector("span").textContent = extNewsOpen ? "Sembunyikan" : "Tampilkan";
+  $("#extNewsN").textContent = news.length ? `· ${nf(news.length)} berita` : "";
   seg.innerHTML = EXT_TOPICS.filter(([id]) => id === "all" || have.has(id)).map(([id, l]) => `<button aria-pressed="${id === extTopic}" data-t="${id}">${esc(l)}</button>`).join("");
   const label = id => (EXT_TOPICS.find(t => t[0] === id) || [, ""])[1];
   const list = news.filter(n => extTopic === "all" || n.topic === extTopic).sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, extTopic === "all" ? 24 : 12);
@@ -1949,6 +1952,7 @@ $("#btnExtBrief").onclick = async e => { const x = e.currentTarget, t = x.textCo
   catch (err) { toast(err && err.code === "unauthorized" ? "Khusus Product Development" : "Gagal menyusun: " + errText(err)); x.textContent = t; }
   x.disabled = false; };
 $("#mktRange").onclick = e => { const x = e.target.closest("button"); if (!x) return; mktDays = +x.dataset.d; $("#mktRange").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === x))); renderExternal(); };
+$("#extNewsTgl").onclick = () => { extNewsOpen = !extNewsOpen; store.set("li.extNews", extNewsOpen ? "1" : "0"); renderExternal(); };
 $("#extTopic").onclick = e => { const x = e.target.closest("button"); if (!x) return; extTopic = x.dataset.t; renderExternal(); };
 $("#btnExtRefresh").onclick = async e => { const x = e.currentTarget; x.disabled = true; x.textContent = "Mengambil… (±20 detik)";
   try { const r = await api("refreshExternal", {}); EXT = r.external || EXT; store.set("li.ext", JSON.stringify(EXT)); renderExternal(); toast(EXT.err ? "Diperbarui, sebagian sumber gagal" : "Kondisi eksternal diperbarui"); }
