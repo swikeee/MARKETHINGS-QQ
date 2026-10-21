@@ -559,6 +559,9 @@ table.sched{width:100%;min-width:0;table-layout:auto} .sched td{white-space:norm
 .delta.pos{background:var(--ok-soft);color:var(--ok)} .delta.flat{background:var(--surface-2);color:var(--muted)} .delta.neg{background:var(--bad-soft);color:var(--bad)}
 .spark{display:block;width:100%;height:36px;margin-top:6px}
 /* ---------- kondisi eksternal ---------- */
+.ext-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:4px 0 10px} .ext-bar h3{margin:0} .ext-bar .seg{margin-left:auto}
+.ext-ch{margin-bottom:16px} .ext-last{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:8px}
+.ext-last .nm{font-weight:600;font-size:14px;width:100%} .ext-last .px{font:600 26px var(--f-body);letter-spacing:-.02em;font-variant-numeric:tabular-nums} .ext-last .ch{font-size:13px;font-weight:600} .ext-last .dt{font-size:12px;color:var(--muted)}
 .ext-k{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px} .ext-k .kpi .v{font-size:22px}
 .ext-k .kpi .s b{font-weight:600} .pos{color:var(--ok)} .neg{color:var(--bad)} .neu{color:var(--muted)}
 .ext-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
@@ -1291,6 +1294,12 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
         <span class="tools"><span class="note" id="extWhen"></span><button class="btn" id="btnExtRefresh" hidden>Perbarui</button></span>
         <p class="note">Pasar modal, suku bunga, ekonomi, dan kebijakan yang bisa memengaruhi permintaan properti. Diperbarui otomatis tiap pagi; bacaan dampaknya disusun AI dari data dan berita di bawah.</p></div>
       <div class="kpis ext-k" id="extKpis"></div>
+      <div class="ext-bar"><h3>IHSG &amp; rupiah harian</h3><span class="note" id="mktAt"></span>
+        <div class="seg" id="mktRange" aria-label="Rentang grafik"><button aria-pressed="false" data-d="30">1 bln</button><button aria-pressed="true" data-d="91">3 bln</button><button aria-pressed="false" data-d="182">6 bln</button><button aria-pressed="false" data-d="366">1 thn</button></div></div>
+      <div class="grid2 ext-ch">
+        <div class="panel"><div class="ext-last" id="ihsgLast"></div><div class="chartbox" style="height:240px"><canvas id="chIhsg" aria-label="Grafik IHSG harian"></canvas></div></div>
+        <div class="panel"><div class="ext-last" id="idrLast"></div><div class="chartbox" style="height:240px"><canvas id="chIdr" aria-label="Grafik kurs USD/IDR harian"></canvas></div></div>
+      </div>
       <div class="ext-grid">
         <div class="panel" id="extBriefPanel"><h3>Bacaan untuk bisnis properti</h3><div id="extBrief"></div></div>
         <div class="panel"><h3>Pasar modal</h3><p class="desc">Harga penutupan terakhir dan perubahannya dalam 1, 3, dan 6 bulan. MSCI Indonesia diwakili ETF iShares MSCI Indonesia (EIDO, dalam USD).</p><div class="tablewrap"><table class="ext-mk" id="extMarket"></table></div></div>
@@ -1871,9 +1880,33 @@ const devShort = d => (d === BRAND.name ? BRAND.short : DEV_SHORT[d]) || (String
 // ---------- kondisi eksternal: berita, pasar modal, dan bacaan dampaknya ke properti ----------
 let EXT = readJson("li.ext") || {}, extTopic = "all";
 const EXT_TOPICS = [["all","Semua"],["modal","Pasar modal & MSCI"],["bunga","Suku bunga & KPR"],["properti","Properti & kebijakan"],["ekonomi","Ekonomi & daya beli"],["lokal","Bandung & sekitarnya"]];
-const extPct = v => v === null || v === undefined || !isFinite(v) ? `<span class="neu">–</span>` : `<span class="${v > 0 ? "pos" : v < 0 ? "neg" : "neu"}">${v > 0 ? "+" : ""}${nf(v, 1)}%</span>`;
+const extPct = v => { if (v === null || v === undefined || !isFinite(v)) return `<span class="neu">–</span>`; v = Math.round(v * 10) / 10 || 0; return `<span class="${v > 0 ? "pos" : v < 0 ? "neg" : "neu"}">${v > 0 ? "+" : ""}${nf(v, 1)}%</span>`; };
 const extAgo = iso => { const t = Date.parse(iso); if (!t) return ""; const h = (Date.now() - t) / 36e5;
   return h < 1 ? "baru saja" : h < 24 ? `${Math.floor(h)} jam lalu` : h < 24*7 ? `${Math.floor(h/24)} hari lalu` : new Date(t).toLocaleDateString("id-ID", {day:"numeric", month:"short"}); };
+let mktDays = 91, mktReqAt = 0;
+const ID_MON3 = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const dLabel = d => { const [y, m, dd] = String(d).split("-"); return `${+dd} ${ID_MON3[+m - 1] || ""}${mktDays > 200 ? " " + y.slice(2) : ""}`; };
+/** Grafik garis harian IHSG / kurs dengan label hanya di titik terakhir. */
+function drawDaily(id, boxId, m, unit){
+  const box = $("#" + boxId);
+  if (!m || !Array.isArray(m.series) || m.series.length < 2){ box.innerHTML = `<div class="nm">${unit === "Rp" ? "Kurs USD/IDR" : "IHSG"}</div><span class="dt">Data harian belum diambil.</span>`; charts[id]?.destroy(); return; }
+  const lim = new Date(Date.parse(m.series[m.series.length - 1][0]) - mktDays * 864e5).toISOString().slice(0, 10), S = m.series.filter(p => p[0] >= lim);
+  const first = S[0][1], last = S[S.length - 1][1], ch = first ? (last / first - 1) * 100 : 0, fmt = v => (unit === "Rp" ? "Rp " : "") + nf(v, unit === "Rp" ? 0 : 2);
+  const prev = m.series.length > 1 ? m.series[m.series.length - 2][1] : null, d1 = prev ? (last / prev - 1) * 100 : null;
+  box.innerHTML = `<div class="nm">${unit === "Rp" ? "Kurs USD/IDR" : "IHSG (Indeks Harga Saham Gabungan)"}</div><span class="px">${fmt(last)}</span><span class="ch">${extPct(d1)} hari ini</span><span class="ch">${extPct(Math.round(ch * 10) / 10)} dalam ${mktDays > 200 ? "1 tahun" : Math.round(mktDays / 30) + " bulan"}</span><span class="dt">per ${esc(dLabel(m.series[m.series.length - 1][0]))}${m.time ? " · " + new Date(m.time).toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"}) + " WIB" : ""}</span>`;
+  const col = unit === "Rp" ? css("--c2") : css("--c1"), lo = Math.min(...S.map(p => p[1])), hi = Math.max(...S.map(p => p[1])), pad = (hi - lo) * .08 || hi * .01;
+  mk(id, {type:"line", data:{labels:S.map(p => dLabel(p[0])), datasets:[{label:unit === "Rp" ? "USD/IDR" : "IHSG", data:S.map(p => p[1]), borderColor:col, backgroundColor:hexA(col, .12), fill:true, borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:.2}]},
+    options:{responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false}, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c => " " + fmt(c.parsed.y)}}},
+      scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:6, maxRotation:0}}, y:{min:Math.floor(lo - pad), max:Math.ceil(hi + pad), ticks:{maxTicksLimit:5, callback:v => nf(v)}}}}},
+    {filter:c => c.dataIndex === S.length - 1, strict:true, fmt:v => fmt(v)});
+}
+/** Harga terbaru dari server (Marketing juga boleh). Server memakai simpanan bila umurnya < 15 menit. */
+async function loadMarket(){
+  if (mode !== "live" || !TOKEN || !API_URL || Date.now() - mktReqAt < 15 * 6e4) return; mktReqAt = Date.now();
+  try { const j = await (await fetch(API_URL + (API_URL.includes("?") ? "&" : "?") + "market=1&token=" + encodeURIComponent(TOKEN), {cache:"no-store"})).json();
+    if (j && j.ok && Array.isArray(j.market) && j.market.length){ EXT.market = j.market; EXT.marketAt = j.marketAt; store.set("li.ext", JSON.stringify(EXT)); renderExternal(); } } catch {}
+}
+setInterval(() => { if (document.visibilityState === "visible" && !$("#tab-comp").hidden) loadMarket(); }, 6e4);
 const extCanRefresh = () => mode === "live" && !!TOKEN && !!backendSheetUrl;   // hanya Product Development (WRITE_TOKEN)
 function renderExternal(){
   const sec = $("#extSec"); if (!sec) return;
@@ -1881,14 +1914,18 @@ function renderExternal(){
   $("#extWhen").textContent = EXT.fetchedAt ? `Diperbarui ${extAgo(EXT.fetchedAt)}` : mode === "live" ? "Belum pernah diambil" : "Mode demo";
   $("#extWhen").title = EXT.err ? "Sebagian sumber gagal: " + EXT.err : "";
   const rb = $("#btnExtRefresh"); rb.hidden = !extCanRefresh();
+  $("#mktAt").textContent = EXT.marketAt ? `harga diperbarui ${extAgo(EXT.marketAt)} · Yahoo Finance, tertunda ±15 menit` : "";
+  drawDaily("chIhsg", "ihsgLast", mk.find(x => x.t === "^JKSE"), "");
+  drawDaily("chIdr", "idrLast", mk.find(x => x.t === "IDR=X"), "Rp");
+  if (!$("#tab-comp").hidden) loadMarket();
   // indikator: BI-Rate, inflasi, kurs (bi.go.id) + IHSG & MSCI Indonesia
   const mac = (k, l, fmt, sub) => MACRO[k] ? `<div class="kpi"><div class="l">${l}</div><div class="v">${fmt(MACRO[k].v)}</div><div class="s">${sub} · ${esc(MACRO[k].d || "")}</div></div>` : "";
   const tile = t => { const m = mk.find(x => x.t === t); return m ? `<div class="kpi"><div class="l">${esc(m.name)}</div><div class="v">${nf(m.last, m.last < 100 ? 2 : 0)}</div><div class="s">1 hari ${extPct(m.d1)} · 1 bulan ${extPct(m.m1)}</div>${sparkSvg(m.spark || [])}</div>` : ""; };
-  const k = [mac("bi", "BI-Rate", v => nf(v, 2) + "%", "Bank Indonesia"), mac("inf", "Inflasi (yoy)", v => nf(v, 2) + "%", "IHK"), mac("kurs", "USD / IDR", v => "Rp " + nf(v), "JISDOR"), tile("^JKSE"), tile("EIDO")].join("");
+  const k = [mac("bi", "BI-Rate", v => nf(v, 2) + "%", "Bank Indonesia"), mac("inf", "Inflasi (yoy)", v => nf(v, 2) + "%", "IHK"), MACRO.kurs ? mac("kurs", "USD / IDR", v => "Rp " + nf(v), "JISDOR") : tile("IDR=X"), tile("^JKSE"), tile("EIDO")].join("");
   $("#extKpis").innerHTML = k || `<p class="note" style="margin:0">Indikator belum tersedia.</p>`;
   // tabel pasar modal
   $("#extMarket").innerHTML = mk.length ? `<thead><tr><th>Indeks / saham</th><th>Terakhir</th><th>1 bln</th><th>3 bln</th><th>6 bln</th><th>Tren 6 bln</th></tr></thead><tbody>${
-    mk.map(m => `<tr title="${esc(m.t)} · ${esc(m.date || "")} · 1 hari ${m.d1 ?? "–"}%"><td>${esc(m.name)}</td><td>${nf(m.last, m.last < 100 ? 2 : 0)}</td><td>${extPct(m.m1)}</td><td>${extPct(m.m3)}</td><td>${extPct(m.m6)}</td><td class="sp">${sparkSvg(m.spark || [])}</td></tr>`).join("")}</tbody>`
+    mk.filter(m => m.t !== "IDR=X").map(m => `<tr title="${esc(m.t)} · ${esc(m.date || "")} · 1 hari ${m.d1 ?? "–"}%"><td>${esc(m.name)}</td><td>${nf(m.last, m.last < 100 ? 2 : 0)}</td><td>${extPct(m.m1)}</td><td>${extPct(m.m3)}</td><td>${extPct(m.m6)}</td><td class="sp">${sparkSvg(m.spark || [])}</td></tr>`).join("")}</tbody>`
     : `<tbody><tr><td class="note">Data pasar modal belum diambil.</td></tr></tbody>`;
   // bacaan AI
   const A = ["positif","netral","waspada","negatif"], li = a => (Array.isArray(a) ? a : []).map(x => `<li>${esc(x)}</li>`).join("");
@@ -1906,6 +1943,7 @@ function renderExternal(){
   $("#extNews").innerHTML = list.length ? list.map(n => `<div class="n"><a href="${esc(n.link)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a><span class="tg">${esc(label(n.topic))}</span><span class="m">${esc(n.source || "")}${n.source && n.date ? " · " : ""}${esc(extAgo(n.date))}</span></div>`).join("")
     : `<p class="note" style="margin:0">Belum ada berita.</p>`;
 }
+$("#mktRange").onclick = e => { const x = e.target.closest("button"); if (!x) return; mktDays = +x.dataset.d; $("#mktRange").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b === x))); renderExternal(); };
 $("#extTopic").onclick = e => { const x = e.target.closest("button"); if (!x) return; extTopic = x.dataset.t; renderExternal(); };
 $("#btnExtRefresh").onclick = async e => { const x = e.currentTarget; x.disabled = true; x.textContent = "Mengambil… (±30 detik)";
   try { const r = await api("refreshExternal", {}); EXT = r.external || EXT; store.set("li.ext", JSON.stringify(EXT)); renderExternal(); toast(EXT.err ? "Diperbarui, sebagian sumber gagal" : "Kondisi eksternal diperbarui"); }
@@ -2174,7 +2212,7 @@ function toneChart(cfg, arc, horiz){ const o = cfg.options, pl = o.plugins = o.p
   let bi = 0, li = 0; (cfg.data?.datasets || []).forEach(ds => { const t = ds.type || cfg.type;
     if (arc){ ds.backgroundColor = TONE.pie; ds.borderColor = "#22172B"; ds.borderWidth = 2; }
     else if (t === "scatter" || t === "bubble" || Array.isArray(ds.backgroundColor)) return;   // warna per titik/batang punya arti: biarkan
-    else if (t === "line"){ if (li++) return; ds.borderColor = TONE.line; ds.pointBackgroundColor = TONE.line; ds.pointBorderColor = "#22172B"; ds.backgroundColor = TONE.line; }
+    else if (t === "line"){ if (li++) return; ds.borderColor = TONE.line; ds.pointBackgroundColor = TONE.line; ds.pointBorderColor = "#22172B"; ds.backgroundColor = ds.fill ? "rgba(255,195,122,.14)" : TONE.line; }
     else { ds.backgroundColor = bi++ === 0 ? toneGrad(horiz, "#B83F8C", "#F29A45") : "rgba(255,255,255,.26)"; ds.borderColor = "transparent"; } }); }
 // Grafik dibuat saat kanvasnya masuk layar, jadi animasinya terlihat ketika di-scroll (semua segmen).
 const pendingCharts = {};

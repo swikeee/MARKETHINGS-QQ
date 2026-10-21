@@ -92,11 +92,12 @@ function seedSources() {
 /* ======================= WEB API ======================= */
 
 /* ---------- jadwal sinkron website: Rabu 07.00 dan Jumat 18.00 WIB ---------- */
-const SYNC_SCHEDULE = [['WEDNESDAY', 7], ['FRIDAY', 18]], SCHED_KEY = 'wed07-fri18+ext06';
+const SYNC_SCHEDULE = [['WEDNESDAY', 7], ['FRIDAY', 18]], SCHED_KEY = 'wed07-fri18+ext06+mkt17';
 function installSchedule() {
-  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'weeklySync' || t.getHandlerFunction() === 'dailyExternal').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.getProjectTriggers().filter(t => ['weeklySync', 'dailyExternal', 'dailyMarket'].indexOf(t.getHandlerFunction()) >= 0).forEach(t => ScriptApp.deleteTrigger(t));
   SYNC_SCHEDULE.forEach(([d, h]) => ScriptApp.newTrigger('weeklySync').timeBased().onWeekDay(ScriptApp.WeekDay[d]).atHour(h).nearMinute(0).inTimezone('Asia/Jakarta').create());
   ScriptApp.newTrigger('dailyExternal').timeBased().everyDays(1).atHour(6).nearMinute(0).inTimezone('Asia/Jakarta').create();   // kondisi eksternal: tiap pagi
+  ScriptApp.newTrigger('dailyMarket').timeBased().everyDays(1).atHour(17).nearMinute(0).inTimezone('Asia/Jakarta').create();    // harga penutupan IHSG & kurs: tiap sore
   PropertiesService.getScriptProperties().setProperty('SYNC_SCHEDULE', SCHED_KEY);
 }
 /** Jadwal lama (hanya Rabu) diganti otomatis begitu Code.gs versi ini dipakai, tanpa perlu menjalankan setup() lagi. */
@@ -114,6 +115,7 @@ function doGet(e) {
     if (readTok && p.token !== readTok && p.token !== prop('WRITE_TOKEN')) return out({ ok: false, error: 'unauthorized' });
     if (p.sheet) return out(p.token && p.token === prop('WRITE_TOKEN') ? { ok: true, url: SpreadsheetApp.getActive().getUrl() } : { ok: false, error: 'unauthorized' });   // tombol "Buka data sheet" hanya untuk WRITE_TOKEN
     if (p.tab !== undefined) return out({ ok: true, rows: salesTab(p.tab) });   // tab dari Sheet rekap penjualan (SALES_SHEET_ID)
+    if (p.market) return out({ ok: true, ...refreshMarket(15) });   // IHSG & kurs untuk grafik harian; diambil ulang paling cepat tiap 15 menit
     if (p.rev) return out({ ok: true, rev: revision() });   // cek ringan: dashboard hanya mengambil data lengkap bila angka ini berubah
     return out({ ok: true, ...snapshot() });
   } catch (err) { return out({ ok: false, error: String(err && err.message || err) }); }
@@ -314,9 +316,24 @@ const NEWS_TOPICS = [
 ];
 // Cadangan bila Google News tidak terjangkau: RSS media ekonomi, disaring kata kunci tiap topik.
 const NEWS_FALLBACK = ['https://www.cnbcindonesia.com/market/rss', 'https://www.cnbcindonesia.com/news/rss', 'https://www.antaranews.com/rss/ekonomi.xml', 'https://www.antaranews.com/rss/ekonomi-bisnis.xml'];
-const TICKERS_DEFAULT = '^JKSE,EIDO,BSDE.JK,CTRA.JK,SMRA.JK,PWON.JK';
-const TICKER_NAME = { '^JKSE': 'IHSG', 'EIDO': 'MSCI Indonesia', 'BSDE.JK': 'BSDE', 'CTRA.JK': 'CTRA', 'SMRA.JK': 'SMRA', 'PWON.JK': 'PWON', 'APLN.JK': 'APLN', 'LPKR.JK': 'LPKR', 'DMAS.JK': 'DMAS' };
+const TICKERS_DEFAULT = '^JKSE,IDR=X,EIDO,BSDE.JK,CTRA.JK,SMRA.JK,PWON.JK';
+const TICKERS_DAILY = ['^JKSE', 'IDR=X'];   // selalu diambil, dengan riwayat harian 1 tahun untuk grafik
+const TICKER_NAME = { '^JKSE': 'IHSG', 'IDR=X': 'USD/IDR', 'EIDO': 'MSCI Indonesia', 'BSDE.JK': 'BSDE', 'CTRA.JK': 'CTRA', 'SMRA.JK': 'SMRA', 'PWON.JK': 'PWON', 'APLN.JK': 'APLN', 'LPKR.JK': 'LPKR', 'DMAS.JK': 'DMAS' };
 function dailyExternal() { try { fetchExternal(true); } catch (e) {} }
+function dailyMarket() { try { refreshMarket(0); } catch (e) {} }
+/** Harga terbaru IHSG, kurs, dan saham (tanpa berita & AI). Dipakai grafik harian; maxAgeMin = umur maksimum data tersimpan sebelum diambil ulang. */
+function refreshMarket(maxAgeMin) {
+  const cur = readExternal(), age = (Date.now() - Date.parse(cur.marketAt || 0)) / 60000;
+  if (cur.market && cur.market.length && age < maxAgeMin) return { market: cur.market, marketAt: cur.marketAt, cached: true };
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(10000)) return { market: cur.market || [], marketAt: cur.marketAt || '', cached: true };
+  try {
+    const errs = [], mk = fetchMarket(errs), fresh = readExternal();
+    if (mk.length) { fresh.market = mk; fresh.marketAt = now(); }
+    fresh.marketErr = errs.join('; ').slice(0, 400);
+    upsert('Settings', { id: 'external', value: JSON.stringify(fresh), updatedAt: now() });
+    return { market: fresh.market || [], marketAt: fresh.marketAt || '', err: fresh.marketErr };
+  } finally { lock.releaseLock(); }
+}
 function xmlText(s) { return String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/\s+/g, ' ').trim(); }
 /** RSS → [{title, link, source, date}] tanpa XmlService (lebih toleran terhadap feed yang tidak rapi). */
 function parseRss(xml) {
@@ -348,19 +365,26 @@ function fetchNews(errs) {
 }
 /** Harga penutupan harian 6 bulan terakhir dari Yahoo Finance (tanpa kunci API). */
 function fetchMarket(errs) {
-  const list = String(prop('MARKET_TICKERS') || TICKERS_DEFAULT).split(',').map(x => x.trim()).filter(Boolean).slice(0, 10), out = [];
+  const own = String(prop('MARKET_TICKERS') || TICKERS_DEFAULT).split(',').map(x => x.trim()).filter(Boolean);
+  const list = TICKERS_DAILY.concat(own.filter(t => TICKERS_DAILY.indexOf(t) < 0)).slice(0, 12), out = [];
   list.forEach(tk => {
     try {
-      const j = JSON.parse(fetchText('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(tk) + '?range=6mo&interval=1d'));
+      const j = JSON.parse(fetchText('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(tk) + '?range=' + (TICKERS_DAILY.indexOf(tk) >= 0 ? '1y' : '6mo') + '&interval=1d'));
       const r = j && j.chart && j.chart.result && j.chart.result[0]; if (!r) throw new Error('data kosong');
       const ts = r.timestamp || [], cl = (r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close) || [];
       const pts = ts.map((t, i) => [t, cl[i]]).filter(p => typeof p[1] === 'number' && isFinite(p[1]));
+      const live = r.meta && r.meta.regularMarketPrice, liveT = r.meta && r.meta.regularMarketTime;   // harga berjalan (tertunda ±15 menit) saat bursa buka
+      if (typeof live === 'number' && liveT && pts.length) { const lastDay = new Date(pts[pts.length - 1][0] * 1000 + 7 * 3600e3).toISOString().slice(0, 10), liveDay = new Date(liveT * 1000 + 7 * 3600e3).toISOString().slice(0, 10);
+        if (liveDay > lastDay) pts.push([liveT, live]); else if (liveDay === lastDay && liveT >= pts[pts.length - 1][0]) pts[pts.length - 1] = [liveT, live]; }
       if (pts.length < 2) throw new Error('data kosong');
+      if (TICKERS_DAILY.indexOf(tk) >= 0 && pts.length > 260) pts.splice(0, pts.length - 260);
       const last = pts[pts.length - 1][1], at = days => { const lim = pts[pts.length - 1][0] - days * 86400; let v = pts[0][1]; pts.forEach(p => { if (p[0] <= lim) v = p[1]; }); return v; };
       const pct = (a, b) => b ? Math.round((a / b - 1) * 1000) / 10 : null;
-      out.push({ t: tk, name: TICKER_NAME[tk] || tk.replace(/\.JK$/, ''), cur: (r.meta && r.meta.currency) || '', last: Math.round(last * 100) / 100, date: new Date(pts[pts.length - 1][0] * 1000).toISOString().slice(0, 10),
-        d1: pct(last, pts[pts.length - 2][1]), m1: pct(last, at(30)), m3: pct(last, at(91)), m6: pct(last, pts[0][1]),
-        spark: pts.filter((p, i) => i % 2 === 0 || i === pts.length - 1).slice(-64).map(p => Math.round(p[1] * 100) / 100) });
+      out.push({ t: tk, name: TICKER_NAME[tk] || tk.replace(/\.JK$/, ''), cur: (r.meta && r.meta.currency) || '', last: Math.round(last * 100) / 100, date: new Date(pts[pts.length - 1][0] * 1000 + 7 * 3600e3).toISOString().slice(0, 10),
+        d1: pct(last, pts[pts.length - 2][1]), m1: pct(last, at(30)), m3: pct(last, at(91)), m6: pct(last, at(182)), y1: pct(last, pts[0][1]),
+        time: new Date(pts[pts.length - 1][0] * 1000).toISOString(),
+        series: TICKERS_DAILY.indexOf(tk) >= 0 ? pts.map(p => [new Date(p[0] * 1000 + 7 * 3600e3).toISOString().slice(0, 10), Math.round(p[1] * 100) / 100]) : undefined,
+        spark: pts.slice(-130).filter((p, i, a) => i % 2 === 0 || i === a.length - 1).map(p => Math.round(p[1] * 100) / 100) });
     } catch (e) { errs.push(tk + ': ' + String(e.message || e).slice(0, 50)); }
   });
   return out;
@@ -384,7 +408,7 @@ Faktor 4-6 butir, urut dari yang paling berpengaruh.`;
 function readExternal() { try { const r = readTable('Settings').find(x => String(x.id) === 'external'); return r && r.value ? JSON.parse(r.value) : {}; } catch (e) { return {}; } }
 function fetchExternal(withAi) {
   const errs = [], cur = readExternal(), market = fetchMarket(errs), news = fetchNews(errs);
-  const ext = { fetchedAt: now(), market: market.length ? market : (cur.market || []), news: news.length ? news : (cur.news || []), brief: cur.brief || null, briefAt: cur.briefAt || '', err: errs.slice(0, 12).join('; ') };
+  const ext = { fetchedAt: now(), marketAt: market.length ? now() : (cur.marketAt || ''), market: market.length ? market : (cur.market || []), news: news.length ? news : (cur.news || []), brief: cur.brief || null, briefAt: cur.briefAt || '', err: errs.slice(0, 12).join('; ') };
   if (withAi && aiProvider() && (news.length || market.length)) {
     try { const b = parseJson(aiText([{ type: 'text', text: EXT_PROMPT(readMacro(), ext.market, ext.news.slice(0, 40)) }], 2200, aiEffort()));
       if (b && b.ringkasan) { ext.brief = b; ext.briefAt = now(); } }
