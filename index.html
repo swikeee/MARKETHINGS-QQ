@@ -558,6 +558,27 @@ table.sched{width:100%;min-width:0;table-layout:auto} .sched td{white-space:norm
 .delta{font:500 12px var(--f-body);padding:2px 7px;border-radius:999px;white-space:nowrap}
 .delta.pos{background:var(--ok-soft);color:var(--ok)} .delta.flat{background:var(--surface-2);color:var(--muted)} .delta.neg{background:var(--bad-soft);color:var(--bad)}
 .spark{display:block;width:100%;height:36px;margin-top:6px}
+/* ---------- kondisi eksternal ---------- */
+.ext-k{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px} .ext-k .kpi .v{font-size:22px}
+.ext-k .kpi .s b{font-weight:600} .pos{color:var(--ok)} .neg{color:var(--bad)} .neu{color:var(--muted)}
+.ext-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+@media (max-width:900px){.ext-grid{grid-template-columns:1fr}}
+.ext-mood{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted);margin-bottom:8px}
+.ext-mood.positif{background:var(--ok-soft);color:var(--ok)} .ext-mood.waspada{background:var(--warn-soft);color:var(--warn)} .ext-mood.negatif{background:var(--bad-soft);color:var(--bad)}
+.ext-sum{font-size:15px;line-height:1.55;margin:0 0 12px}
+.ext-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:0 0 12px}
+.ext-f .f{border:1px solid var(--line);border-left:3px solid var(--muted);border-radius:10px;padding:10px 12px;background:var(--surface-2);font-size:13px}
+.ext-f .f.positif{border-left-color:var(--ok)} .ext-f .f.negatif{border-left-color:var(--bad)}
+.ext-f .f .tp{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em} .ext-f .f b{display:block;margin:2px 0 4px;font-size:14px}
+.ext-f .f .dm{margin-top:6px;color:var(--muted)}
+.ext-lists{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px} .ext-lists h4{margin:0 0 4px;font-size:13px} .ext-lists ul{margin:0;padding-left:18px}
+@media (max-width:600px){.ext-lists{grid-template-columns:1fr}}
+.ext-mk{width:100%;min-width:0;border-collapse:collapse;font-size:13px} #extSec .tablewrap{border:0;background:transparent} .ext-mk th,.ext-mk td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.ext-mk th:first-child,.ext-mk td:first-child{text-align:left} .ext-mk th{font-weight:500;color:var(--muted);font-size:12px;background:transparent} .ext-mk td:first-child{white-space:normal} .ext-mk td.sp{width:72px;min-width:60px} .ext-mk .spark{height:24px;margin:0}
+.ext-news{display:grid;gap:0}
+.ext-news .n{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--line)} .ext-news .n:last-child{border-bottom:0}
+.ext-news a{color:var(--ink);text-decoration:none;font-weight:500;line-height:1.4} .ext-news a:hover{text-decoration:underline}
+.ext-news .m{font-size:12px;color:var(--muted)} .ext-news .tg{font-size:11px;color:var(--muted);white-space:nowrap;align-self:start}
 .spark path.l{fill:none;stroke:var(--accent);stroke-width:1.6} .spark path.a{fill:var(--accent);opacity:.12}
 .spark circle{fill:var(--accent)}
 .funnel{display:grid;gap:10px}
@@ -1265,16 +1286,28 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
       <div class="hd"><b>Insight AI · Kompetitor</b><span class="grp"><button class="btn sm" id="insightCopy">Salin</button><button class="btn sm" id="insightClose">Tutup</button></span></div>
       <div class="md" id="insightBody"></div>
     </div>
+    <div class="sec reveal" id="extSec">
+      <div class="sec-h"><span class="eyebrow">01</span><h2>Kondisi eksternal</h2>
+        <span class="tools"><span class="note" id="extWhen"></span><button class="btn" id="btnExtRefresh" hidden>Perbarui</button></span>
+        <p class="note">Pasar modal, suku bunga, ekonomi, dan kebijakan yang bisa memengaruhi permintaan properti. Diperbarui otomatis tiap pagi; bacaan dampaknya disusun AI dari data dan berita di bawah.</p></div>
+      <div class="kpis ext-k" id="extKpis"></div>
+      <div class="ext-grid">
+        <div class="panel" id="extBriefPanel"><h3>Bacaan untuk bisnis properti</h3><div id="extBrief"></div></div>
+        <div class="panel"><h3>Pasar modal</h3><p class="desc">Harga penutupan terakhir dan perubahannya dalam 1, 3, dan 6 bulan. MSCI Indonesia diwakili ETF iShares MSCI Indonesia (EIDO, dalam USD).</p><div class="tablewrap"><table class="ext-mk" id="extMarket"></table></div></div>
+      </div>
+      <div class="panel"><div class="ph" style="margin-bottom:8px"><h3>Berita terbaru</h3><div class="seg" id="extTopic" aria-label="Saring berita per topik"></div></div>
+        <div class="ext-news" id="extNews"></div></div>
+    </div>
     <div class="sec reveal">
-      <div class="sec-h"><span class="eyebrow">01</span><h2>Peta developer</h2><p class="note">Ringkasan tiap developer: jumlah produk, rentang harga, dan komposisi tier.</p></div>
+      <div class="sec-h"><span class="eyebrow">02</span><h2>Peta developer</h2><p class="note">Ringkasan tiap developer: jumlah produk, rentang harga, dan komposisi tier.</p></div>
       <div class="devgrid" id="devCards"></div>
     </div>
     <div class="sec reveal">
-      <div class="sec-h scene"><span class="eyebrow">02</span><h2>Tangga harga</h2><p class="note">Harga tiap developer dipisah per segmen. Setiap titik adalah satu tipe unit; batang menunjukkan rentang termurah sampai termahal di segmen itu.</p></div>
+      <div class="sec-h scene"><span class="eyebrow">03</span><h2>Tangga harga</h2><p class="note">Harga tiap developer dipisah per segmen. Setiap titik adalah satu tipe unit; batang menunjukkan rentang termurah sampai termahal di segmen itu.</p></div>
       <div class="panel"><div id="ladder" class="ladder"></div></div>
     </div>
     <div class="sec reveal" id="chartSec">
-      <div class="sec-h"><span class="eyebrow">03</span><h2>Posisi produk &amp; serapan</h2></div>
+      <div class="sec-h"><span class="eyebrow">04</span><h2>Posisi produk &amp; serapan</h2></div>
     <div class="grid2">
       <div class="panel">
         <h3>Harga vs luas bangunan</h3>
@@ -1306,24 +1339,24 @@ html.locked #splash{display:none}   /* splash (dan animasinya) baru jalan setela
       </div>
     </div>
     <div class="sec reveal">
-      <div class="sec-h scene"><span class="eyebrow">04</span><h2>Perubahan harga terbaru</h2></div>
+      <div class="sec-h scene"><span class="eyebrow">05</span><h2>Perubahan harga terbaru</h2></div>
       <div class="panel"><div id="histList" class="hist"></div></div>
     </div>
     <div class="sec reveal" id="tableSec">
-      <div class="sec-h"><span class="eyebrow">05</span><h2>Semua produk</h2>
+      <div class="sec-h"><span class="eyebrow">06</span><h2>Semua produk</h2>
         <span class="tools"><button type="button" class="btn sm tgl" id="compToggle" aria-expanded="false" aria-controls="compWrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg><span>Tampilkan</span></button></span></div>
       <p class="fold-note" id="compFold"></p>
       <div class="tablewrap" id="compWrap" hidden><table id="compTable"></table></div>
     </div>
     <div class="sec reveal in" id="fileSec">
-      <div class="sec-h"><span class="eyebrow">06</span><h2>Arsip file</h2>
+      <div class="sec-h"><span class="eyebrow">07</span><h2>Arsip file</h2>
         <span class="tools"><span class="note" id="fileWhere"></span><button class="btn" id="btnUpload">Unggah file</button><input type="file" id="fileInput" multiple hidden></span>
         <p class="note">Brosur, pricelist, foto survei, atau file lain. Brosur yang diekstrak AI otomatis masuk ke sini.</p></div>
       <div class="dupbar" id="fileDup" hidden></div>
       <div class="filegrid" id="fileGrid"></div>
     </div>
     <div class="sec reveal in" id="gallerySec">
-      <div class="sec-h scene"><span class="eyebrow">07</span><h2>Galeri fasad</h2>
+      <div class="sec-h scene"><span class="eyebrow">08</span><h2>Galeri fasad</h2>
         <p class="note">Foto fasad dan denah (layout) tiap tipe unit berdampingan dengan luas, kamar, dan harganya. Gambar dipotong otomatis dari brosur saat Ekstrak brosur, atau ditambahkan sendiri lewat tombol di tiap kartu. Pilih Fasad atau Denah untuk mengganti gambar di semua kartu; centang beberapa kartu untuk membandingkannya.</p></div>
       <div class="gal-tools"><div class="seg" id="galPic" aria-label="Gambar yang ditampilkan"><button aria-pressed="true" data-k="image">Fasad</button><button aria-pressed="false" data-k="plan">Denah</button></div><div class="seg" id="galShow"><button aria-pressed="true" data-v="photo">Dengan foto</button><button aria-pressed="false" data-v="all">Semua tipe</button></div>
         <label class="sel" for="galDev">Developer <select id="galDev"></select></label>
@@ -1732,6 +1765,7 @@ async function load(silent){
     comps = canonDevs(j.competitors || []); sources = j.sources || []; history = j.history || [];
     lastSync = j.lastSync; aiReady = !!j.ai; dbState = "ready"; loadError = ""; remoteFiles = j.files || [];
     seedDone = !!j.settings?.seedComps;
+    if (j.settings?.external){ try { EXT = JSON.parse(j.settings.external) || {}; store.set("li.ext", j.settings.external); } catch {} }   // kondisi eksternal (berita, pasar modal, bacaan AI)
     if (j.settings?.macro){ try { MACRO = JSON.parse(j.settings.macro) || {}; store.set("li.macro", j.settings.macro); } catch {} }
     if (j.settings?.ppt){ try { PPT_SET = {...PPT_SET, ...JSON.parse(j.settings.ppt)}; } catch {} }   // indikator makro & target laporan PPT per kuartal
     if (j.settings?.kom){ try { KOM = {...KOM_DEFAULT, ...JSON.parse(j.settings.kom)}; } catch {} }   // ketentuan sewa & jual dipakai bersama lewat Sheet
@@ -1834,7 +1868,51 @@ $("#compToggle").onclick = () => { compOpen = !compOpen; store.set("li.showComp"
 const absDummy = c => !!c.dummy && !c.isOwn && !!(c.auto || c.source || c.sourceUrl) && absorb(c) !== null;
 const DEV_SHORT = {"Kota Baru Parahyangan":"KBP", "Summarecon Bandung":"Summarecon", "Pororo Land":"Pororo"};
 const devShort = d => (d === BRAND.name ? BRAND.short : DEV_SHORT[d]) || (String(d).length <= 12 ? String(d) : String(d).split(/\s+/).length >= 3 ? String(d).split(/\s+/).map(w => w[0]).join("").toUpperCase() : String(d).split(/\s+/)[0]);
+// ---------- kondisi eksternal: berita, pasar modal, dan bacaan dampaknya ke properti ----------
+let EXT = readJson("li.ext") || {}, extTopic = "all";
+const EXT_TOPICS = [["all","Semua"],["modal","Pasar modal & MSCI"],["bunga","Suku bunga & KPR"],["properti","Properti & kebijakan"],["ekonomi","Ekonomi & daya beli"],["lokal","Bandung & sekitarnya"]];
+const extPct = v => v === null || v === undefined || !isFinite(v) ? `<span class="neu">–</span>` : `<span class="${v > 0 ? "pos" : v < 0 ? "neg" : "neu"}">${v > 0 ? "+" : ""}${nf(v, 1)}%</span>`;
+const extAgo = iso => { const t = Date.parse(iso); if (!t) return ""; const h = (Date.now() - t) / 36e5;
+  return h < 1 ? "baru saja" : h < 24 ? `${Math.floor(h)} jam lalu` : h < 24*7 ? `${Math.floor(h/24)} hari lalu` : new Date(t).toLocaleDateString("id-ID", {day:"numeric", month:"short"}); };
+const extCanRefresh = () => mode === "live" && !!TOKEN && !!backendSheetUrl;   // hanya Product Development (WRITE_TOKEN)
+function renderExternal(){
+  const sec = $("#extSec"); if (!sec) return;
+  const mk = Array.isArray(EXT.market) ? EXT.market : [], news = Array.isArray(EXT.news) ? EXT.news : [], b = EXT.brief;
+  $("#extWhen").textContent = EXT.fetchedAt ? `Diperbarui ${extAgo(EXT.fetchedAt)}` : mode === "live" ? "Belum pernah diambil" : "Mode demo";
+  $("#extWhen").title = EXT.err ? "Sebagian sumber gagal: " + EXT.err : "";
+  const rb = $("#btnExtRefresh"); rb.hidden = !extCanRefresh();
+  // indikator: BI-Rate, inflasi, kurs (bi.go.id) + IHSG & MSCI Indonesia
+  const mac = (k, l, fmt, sub) => MACRO[k] ? `<div class="kpi"><div class="l">${l}</div><div class="v">${fmt(MACRO[k].v)}</div><div class="s">${sub} · ${esc(MACRO[k].d || "")}</div></div>` : "";
+  const tile = t => { const m = mk.find(x => x.t === t); return m ? `<div class="kpi"><div class="l">${esc(m.name)}</div><div class="v">${nf(m.last, m.last < 100 ? 2 : 0)}</div><div class="s">1 hari ${extPct(m.d1)} · 1 bulan ${extPct(m.m1)}</div>${sparkSvg(m.spark || [])}</div>` : ""; };
+  const k = [mac("bi", "BI-Rate", v => nf(v, 2) + "%", "Bank Indonesia"), mac("inf", "Inflasi (yoy)", v => nf(v, 2) + "%", "IHK"), mac("kurs", "USD / IDR", v => "Rp " + nf(v), "JISDOR"), tile("^JKSE"), tile("EIDO")].join("");
+  $("#extKpis").innerHTML = k || `<p class="note" style="margin:0">Indikator belum tersedia.</p>`;
+  // tabel pasar modal
+  $("#extMarket").innerHTML = mk.length ? `<thead><tr><th>Indeks / saham</th><th>Terakhir</th><th>1 bln</th><th>3 bln</th><th>6 bln</th><th>Tren 6 bln</th></tr></thead><tbody>${
+    mk.map(m => `<tr title="${esc(m.t)} · ${esc(m.date || "")} · 1 hari ${m.d1 ?? "–"}%"><td>${esc(m.name)}</td><td>${nf(m.last, m.last < 100 ? 2 : 0)}</td><td>${extPct(m.m1)}</td><td>${extPct(m.m3)}</td><td>${extPct(m.m6)}</td><td class="sp">${sparkSvg(m.spark || [])}</td></tr>`).join("")}</tbody>`
+    : `<tbody><tr><td class="note">Data pasar modal belum diambil.</td></tr></tbody>`;
+  // bacaan AI
+  const A = ["positif","netral","waspada","negatif"], li = a => (Array.isArray(a) ? a : []).map(x => `<li>${esc(x)}</li>`).join("");
+  $("#extBrief").innerHTML = b && b.ringkasan ? `<span class="ext-mood ${A.includes(b.suasana) ? b.suasana : "netral"}">Suasana pasar: ${esc(b.suasana || "netral")}</span>
+    <p class="ext-sum">${esc(b.ringkasan)}</p>
+    <div class="ext-f">${(Array.isArray(b.faktor) ? b.faktor : []).map(f => `<div class="f ${["positif","negatif"].includes(f.arah) ? f.arah : ""}"><div class="tp">${esc(f.topik || "")} · ${esc(f.arah || "netral")}</div><b>${esc(f.judul || "")}</b>${esc(f.isi || "")}${f.dampak ? `<div class="dm">Dampak: ${esc(f.dampak)}</div>` : ""}</div>`).join("")}</div>
+    <div class="ext-lists">${b.pantau?.length ? `<div><h4>Perlu dipantau</h4><ul>${li(b.pantau)}</ul></div>` : ""}${b.saran?.length ? `<div><h4>Saran untuk tim</h4><ul>${li(b.saran)}</ul></div>` : ""}</div>
+    <p class="note" style="margin:10px 0 0">Disusun AI ${esc(extAgo(EXT.briefAt))} dari indikator dan berita di halaman ini. Periksa berita aslinya sebelum dipakai untuk keputusan.</p>`
+    : `<p class="note" style="margin:0">${mode !== "live" ? "Bacaan dampak muncul setelah dashboard tersambung ke Google Sheet." : EXT.fetchedAt ? "Bacaan AI belum tersedia. Isi ANTHROPIC_API_KEY (atau GEMINI_API_KEY) di Script Properties, lalu klik Perbarui." : "Data kondisi eksternal belum diambil. Jadwal otomatis berjalan tiap pagi 06.00 WIB, atau klik Perbarui (Product Development)."}</p>`;
+  // berita
+  const seg = $("#extTopic"), have = new Set(news.map(n => n.topic));
+  seg.innerHTML = EXT_TOPICS.filter(([id]) => id === "all" || have.has(id)).map(([id, l]) => `<button aria-pressed="${id === extTopic}" data-t="${id}">${esc(l)}</button>`).join("");
+  const label = id => (EXT_TOPICS.find(t => t[0] === id) || [, ""])[1];
+  const list = news.filter(n => extTopic === "all" || n.topic === extTopic).sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, extTopic === "all" ? 24 : 12);
+  $("#extNews").innerHTML = list.length ? list.map(n => `<div class="n"><a href="${esc(n.link)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a><span class="tg">${esc(label(n.topic))}</span><span class="m">${esc(n.source || "")}${n.source && n.date ? " · " : ""}${esc(extAgo(n.date))}</span></div>`).join("")
+    : `<p class="note" style="margin:0">Belum ada berita.</p>`;
+}
+$("#extTopic").onclick = e => { const x = e.target.closest("button"); if (!x) return; extTopic = x.dataset.t; renderExternal(); };
+$("#btnExtRefresh").onclick = async e => { const x = e.currentTarget; x.disabled = true; x.textContent = "Mengambil… (±30 detik)";
+  try { const r = await api("refreshExternal", {}); EXT = r.external || EXT; store.set("li.ext", JSON.stringify(EXT)); renderExternal(); toast(EXT.err ? "Diperbarui, sebagian sumber gagal" : "Kondisi eksternal diperbarui"); }
+  catch (err) { toast(err && err.code === "unauthorized" ? "Khusus Product Development" : "Gagal memperbarui: " + errText(err)); }
+  x.disabled = false; x.textContent = "Perbarui"; };
 function renderComp(){
+  try { renderExternal(); } catch (e) { console.error(e); }
   const rows = comps.filter(c => tier==="all" || c.tier===tier);
   renderCompFold(rows);
   const own = rows.filter(c=>c.isOwn), oth = rows.filter(c=>!c.isOwn);
@@ -3979,6 +4057,7 @@ async function loadBackendSheetUrl(){
   if (!salesViaApi() || !API_URL || !TOKEN) return;
   try { const j = await (await fetch(API_URL + (API_URL.includes("?") ? "&" : "?") + "sheet=1&token=" + encodeURIComponent(TOKEN), {cache:"no-store"})).json();
     backendSheetUrl = j && j.ok && /^https:\/\/docs\.google\.com\//.test(j.url || "") ? j.url : ""; } catch { backendSheetUrl = ""; }
+  try { renderExternal(); } catch {}
   renderSalesSource();
 }
 function sheetUrl(){ if (salesViaApi()) return backendSheetUrl; const u = (String(SALES_SHEET).match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+/) || [])[0]; return u ? u + "/edit" : ""; }

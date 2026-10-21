@@ -8,7 +8,7 @@ let n = 0; const ok = (name, cond, extra) => { n++; console.log((cond ? '✓' : 
 ok('sebelum setup(): pesan jelas', /Jalankan setup/.test(get().error || ''), get().error);
 A.setup(); A.setup();   // dua kali: aman diulang
 ok('setup membuat semua sheet', Object.keys(A.SHEETS).every(s => env.sheets[s] && env.sheets[s].rows[0].join() === A.SHEETS[s].join()));
-ok('trigger: sinkron website dua kali seminggu + penanda perubahan', env.triggers.length === 3 && env.triggers.filter(x => x === 'weeklySync').length === 2 && env.triggers.filter(x => x === 'onSheetChange').length === 1, env.triggers.join(','));
+ok('trigger: sinkron website dua kali seminggu + kondisi eksternal harian + penanda perubahan', env.triggers.length === 4 && env.triggers.filter(x => x === 'dailyExternal').length === 1 && env.triggers.filter(x => x === 'weeklySync').length === 2 && env.triggers.filter(x => x === 'onSheetChange').length === 1, env.triggers.join(','));
 ok('sumber awal terisi', A.readTable('Sources').length === 9);
 // token
 ok('tanpa WRITE_TOKEN semua tulis ditolak', post('ping', {}).error === 'unauthorized');
@@ -81,7 +81,7 @@ ok('sumber 404 ditandai tidak terjangkau', A.readTable('Sources').some(x => x.ur
 ok('jadwal sinkron: Rabu 07.00 dan Jumat 18.00 WIB', JSON.stringify(env.weekdays.weeklySync) === JSON.stringify(['WEDNESDAY 7 Asia/Jakarta', 'FRIDAY 18 Asia/Jakarta']), JSON.stringify(env.weekdays.weeklySync));
 { // backend lama (jadwal hanya Rabu) -> jadwal baru terpasang sendiri saat dashboard memanggil Code.gs versi ini
   delete env.props.SYNC_SCHEDULE; env.triggers.splice(env.triggers.indexOf('weeklySync'), 1); env.weekdays.weeklySync = ['WEDNESDAY 7 '];
-  get(); ok('jadwal lama diganti otomatis tanpa setup() ulang', env.triggers.filter(x => x === 'weeklySync').length === 2 && JSON.stringify(env.weekdays.weeklySync) === JSON.stringify(['WEDNESDAY 7 Asia/Jakarta', 'FRIDAY 18 Asia/Jakarta']) && env.props.SYNC_SCHEDULE === 'wed07-fri18', JSON.stringify([env.triggers, env.weekdays.weeklySync]));
+  get(); ok('jadwal lama diganti otomatis tanpa setup() ulang', env.triggers.filter(x => x === 'weeklySync').length === 2 && JSON.stringify(env.weekdays.weeklySync) === JSON.stringify(['WEDNESDAY 7 Asia/Jakarta', 'FRIDAY 18 Asia/Jakarta']) && env.props.SYNC_SCHEDULE === 'wed07-fri18+ext06', JSON.stringify([env.triggers, env.weekdays.weeklySync]));
   get(); ok('jadwal tidak dipasang berulang', env.triggers.filter(x => x === 'weeklySync').length === 2); }
 r = post('syncNow', {}); ok('syncNow berjalan & mencatat log', r.ok && r.status === 'ok' && A.readTable('SyncLog').length === 1 && get().lastSync.summary === r.summary, r.summary);
 env.setFetch((url) => url.includes('api.anthropic.com') ? {code:200, type:'application/json', body:JSON.stringify({content:[{type:'text', text:'[{"developer":"Summarecon Bandung","cluster":"Cluster Uji","lb":100,"price":2600000000}]'}]})} : {code:200, type:'text/html', body:'<p>berubah</p>'});
@@ -357,3 +357,31 @@ delete env.props.READ_TOKEN;
   ok('makro: BI tidak terjangkau sama sekali → kurs dari ECB (frankfurter), BI-Rate tetap nilai terakhir, alasan jelas', m.kurs.v === 18412.5 && m.kurs.src.includes('ECB') && m.bi.v === 6 && m.status === 'sebagian' && /BI-Rate, inflasi belum terambil/.test(m.err) && /server Google/.test(m.err), m.err);
   }
 console.log(process.exitCode ? '\nADA YANG GAGAL' : `\nSemua ${n} uji backend lulus`);
+
+// ---------- kondisi eksternal: berita (Google News RSS), pasar modal (Yahoo), bacaan AI ----------
+{ const env2 = makeEnv(require('path').join(__dirname, '..', 'apps-script', 'Code.gs')), B = env2.api; B.setup();
+  env2.props.WRITE_TOKEN = 'w'; env2.props.READ_TOKEN = 'r'; env2.props.ANTHROPIC_API_KEY = 'k';
+  const rss = (t) => `<?xml version="1.0"?><rss><channel><item><title><![CDATA[${t} - Kontan]]></title><link>https://news.google.com/x/${encodeURIComponent(t)}</link><pubDate>Mon, 19 Oct 2026 02:00:00 GMT</pubDate><source url="https://kontan.co.id">Kontan</source></item><item><title>Berita lama &amp; lain - CNBC</title><link>https://news.google.com/y</link><pubDate>Fri, 16 Oct 2026 02:00:00 GMT</pubDate></item></channel></rss>`;
+  const chart = { chart: { result: [{ meta: { currency: 'IDR' }, timestamp: Array.from({ length: 120 }, (_, i) => 1760000000 + i * 86400), indicators: { quote: [{ close: Array.from({ length: 120 }, (_, i) => 7000 + i * 10) }] } }] } };
+  let aiCalls = 0;
+  env2.setFetch(url => {
+    if (url.includes('news.google.com/rss')) { const q = decodeURIComponent(url.split('q=')[1].split('&')[0]); return { code: 200, type: 'application/rss+xml', body: rss('Judul ' + q.split(' ')[0]) }; }
+    if (url.includes('finance.yahoo.com')) return url.includes('PWON') ? { code: 429, body: 'Too Many Requests' } : { code: 200, type: 'application/json', body: JSON.stringify(chart) };
+    if (url.includes('api.anthropic.com')) { aiCalls++; return { code: 200, type: 'application/json', body: JSON.stringify({ content: [{ type: 'text', text: '{"ringkasan":"Pasar stabil.","suasana":"netral","faktor":[{"topik":"Suku bunga & KPR","arah":"positif","judul":"BI Rate turun","isi":"x","dampak":"y"}],"pantau":["a"],"saran":["b"]}' }] }) }; }
+    return { code: 404, body: '' };
+  });
+  const post2 = (action, payload, token) => JSON.parse(B.doPost({ postData: { contents: JSON.stringify({ action, token, payload }) } }).text);
+  ok('eksternal: Marketing (READ_TOKEN) tidak bisa memicu pembaruan', post2('refreshExternal', {}, 'r').error === 'unauthorized');
+  const r = post2('refreshExternal', {}, 'w'), e = r.external || {};
+  ok('eksternal: berita per topik terbaca dari RSS, sumber dipisah dari judul', r.ok && e.news.length >= 5 && e.news.every(n => n.topic && n.link.startsWith('https://') && !/ - Kontan$/.test(n.title)) && e.news.some(n => n.source === 'Kontan'), JSON.stringify(e.news && e.news[0]));
+  ok('eksternal: berita sama tidak dobel', new Set(e.news.map(n => n.title)).size === e.news.length);
+  ok('eksternal: IHSG & MSCI terbaca dengan % perubahan; ticker gagal dicatat, tidak menggagalkan lainnya', e.market.length === 5 && e.market.find(m => m.t === '^JKSE').name === 'IHSG' && e.market.find(m => m.t === 'EIDO').name === 'MSCI Indonesia' && e.market[0].m1 > 0 && e.market[0].spark.length > 10 && /PWON/.test(e.err), e.err);
+  ok('eksternal: bacaan AI tersimpan', e.brief && e.brief.ringkasan === 'Pasar stabil.' && aiCalls === 1 && !!e.briefAt);
+  const snap = JSON.parse(B.doGet({ parameter: { token: 'r' } }).text);
+  ok('eksternal: ikut terbaca Marketing lewat snapshot (tanpa memanggil AI lagi)', JSON.parse(snap.settings.external).brief.suasana === 'netral' && aiCalls === 1);
+  env2.setFetch(() => ({ code: 503, body: '' }));
+  const r2 = post2('refreshExternal', {}, 'w').external;
+  ok('eksternal: semua sumber gagal → data lama dipertahankan, alasan tercatat', r2.news.length === e.news.length && r2.market.length === 5 && r2.brief.ringkasan === 'Pasar stabil.' && /HTTP 503/.test(r2.err), r2.err.slice(0, 120));
+  ok('eksternal: jadwal harian 06.00 WIB terpasang', env2.triggers.includes('dailyExternal'));
+}
+console.log('\nUji kondisi eksternal selesai');

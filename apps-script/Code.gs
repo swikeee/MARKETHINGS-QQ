@@ -16,6 +16,8 @@
  *                      jadi Sheet rekap TIDAK perlu dibagikan "Anyone with the link".
  *   MODEL              opsional: default "claude-sonnet-5-5"
  *   AI_DAILY_LIMIT     opsional: batas jumlah panggilan AI per hari (default 150; 0 = tanpa batas). Pengaman saldo API.
+ *   MARKET_TICKERS     opsional: kode Yahoo Finance untuk panel Kondisi eksternal, dipisah koma
+ *                      (bawaan: ^JKSE,EIDO,BSDE.JK,CTRA.JK,SMRA.JK,PWON.JK). Tambahkan saham developer sendiri bila perlu.
  *   EFFORT             opsional: effort untuk Insight AI & Ringkasan AI. Default "low"; bisa medium | high | xhigh | max | off
  *
  * Jalankan setup() sekali, lalu Deploy → New deployment → Web app
@@ -40,7 +42,7 @@ const SHEETS = {
 };
 // Kolom yang harus tetap teks: cegah Sheets mengubah tanggal jadi Date, kode kavling jadi angka, atau nomor telepon kehilangan angka 0 di depan
 const TEXT_COLS = { Sales: ['date','akadDate'], Leads: ['month'], Offers: ['date','plotCode','contact','tenant'], Plots: ['code','poly','drawingId'], Competitors: ['sourceDate','cluster','unitType','image','plan'], Files: ['name'], Settings: ['id','value'], Events: ['id','name','start','end','notes'] };
-const WRITE_ACTIONS = ['saveCompetitor','savePlot','saveOffer','saveSource','delete','deleteMany','import','saveFile','deleteFile','saveSetting','saveEvent','deleteEvent','selfTest','refreshMacro'];
+const WRITE_ACTIONS = ['refreshExternal','saveCompetitor','savePlot','saveOffer','saveSource','delete','deleteMany','import','saveFile','deleteFile','saveSetting','saveEvent','deleteEvent','selfTest','refreshMacro'];
 const NUMERIC = ['size','leads','visits','lt','lb','price','stock','sold','months','area','frontage','priceM2','rentM2','x','y','w','h','oldPrice','newPrice','changePct','term','inst','kt','km','floors'];
 const BOOL = ['isOwn','auto','dummy','active'];
 const MAX_TEXT = 60000;
@@ -90,10 +92,11 @@ function seedSources() {
 /* ======================= WEB API ======================= */
 
 /* ---------- jadwal sinkron website: Rabu 07.00 dan Jumat 18.00 WIB ---------- */
-const SYNC_SCHEDULE = [['WEDNESDAY', 7], ['FRIDAY', 18]], SCHED_KEY = 'wed07-fri18';
+const SYNC_SCHEDULE = [['WEDNESDAY', 7], ['FRIDAY', 18]], SCHED_KEY = 'wed07-fri18+ext06';
 function installSchedule() {
-  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'weeklySync').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'weeklySync' || t.getHandlerFunction() === 'dailyExternal').forEach(t => ScriptApp.deleteTrigger(t));
   SYNC_SCHEDULE.forEach(([d, h]) => ScriptApp.newTrigger('weeklySync').timeBased().onWeekDay(ScriptApp.WeekDay[d]).atHour(h).nearMinute(0).inTimezone('Asia/Jakarta').create());
+  ScriptApp.newTrigger('dailyExternal').timeBased().everyDays(1).atHour(6).nearMinute(0).inTimezone('Asia/Jakarta').create();   // kondisi eksternal: tiap pagi
   PropertiesService.getScriptProperties().setProperty('SYNC_SCHEDULE', SCHED_KEY);
 }
 /** Jadwal lama (hanya Rabu) diganti otomatis begitu Code.gs versi ini dipakai, tanpa perlu menjalankan setup() lagi. */
@@ -186,6 +189,7 @@ function handle(action, p) {
       case 'getFile':        return out({ ok: true, ...getFile(p.id) });      // isi file arsip (brosur) untuk dipotong fotonya di laporan PPT
       case 'getImage':       return out({ ok: true, ...getImage(p.url) });    // gambar tipe dari situs developer (tanpa izin CORS) untuk laporan PPT
       case 'syncNow':        { try { fetchMacro(); } catch (e) {} return out({ ok: true, ...syncAll('manual', true) }); }
+      case 'refreshExternal': return out({ ok: true, external: fetchExternal(true) });   // berita, pasar modal & bacaan AI (panel Kondisi eksternal)
       case 'refreshMacro':   return out({ ok: true, macro: fetchMacro() });   // kurs JISDOR, BI-Rate, inflasi dari bi.go.id
       case 'fetchUrl':       return out({ ok: true, ...fetchOne(p.url, p.note, p.developer) });
       case 'ai':             return out({ ok: true, text: aiText([{ type: 'text', text: String(p.prompt || '').slice(0, 180000) }], 2500, aiEffort()), effort: aiEffort() || 'default', provider: aiProvider() });
@@ -296,6 +300,101 @@ function fetchMacro() {
   cur.err = miss.length ? miss.join(', ') + ' belum terambil (' + (errs.join('; ') || 'pola angka tidak ditemukan') + ')' : ''; cur.src = MACRO_URL;
   upsert('Settings', { id: 'macro', value: JSON.stringify(cur), updatedAt: now() });
   return cur;
+}
+
+/* ======================= KONDISI EKSTERNAL (berita, pasar modal, bacaan AI) ======================= */
+// Berdiri sendiri: dijalankan jadwal tiap pagi 06.00 WIB (dailyExternal) atau tombol Perbarui di dashboard (Product Development).
+// Hasil disimpan di tab Settings (id "external") sehingga semua pengguna, termasuk Marketing, membaca hasil yang sama tanpa memanggil AI.
+const NEWS_TOPICS = [
+  { id: 'modal', label: 'Pasar modal & MSCI', q: 'MSCI Indonesia OR IHSG OR "saham properti" when:14d', kw: /msci|ihsg|saham|bursa|indeks|investor asing|net sell|net buy/i },
+  { id: 'bunga', label: 'Suku bunga & KPR', q: '"BI Rate" OR "suku bunga" KPR OR "bunga KPR" when:14d', kw: /bi.?rate|suku bunga|kpr|kredit|likuiditas|rupiah/i },
+  { id: 'properti', label: 'Properti & kebijakan', q: 'properti residensial OR "PPN DTP" OR "insentif properti" OR "harga rumah" when:14d', kw: /properti|perumahan|rumah|ppn dtp|insentif|developer|real estat|hunian/i },
+  { id: 'ekonomi', label: 'Ekonomi & daya beli', q: '"ekonomi Indonesia" OR "daya beli" OR "pertumbuhan ekonomi" OR "kelas menengah" when:14d', kw: /ekonomi|daya beli|konsumsi|pdb|pertumbuhan|kelas menengah|inflasi|phk|apbn/i },
+  { id: 'lokal', label: 'Bandung & sekitarnya', q: 'Bandung properti OR perumahan OR infrastruktur OR "tol" when:30d', kw: /bandung|jawa barat|jabar|cimahi|soreang|gedebage|buahbatu/i },
+];
+// Cadangan bila Google News tidak terjangkau: RSS media ekonomi, disaring kata kunci tiap topik.
+const NEWS_FALLBACK = ['https://www.cnbcindonesia.com/market/rss', 'https://www.cnbcindonesia.com/news/rss', 'https://www.antaranews.com/rss/ekonomi.xml', 'https://www.antaranews.com/rss/ekonomi-bisnis.xml'];
+const TICKERS_DEFAULT = '^JKSE,EIDO,BSDE.JK,CTRA.JK,SMRA.JK,PWON.JK';
+const TICKER_NAME = { '^JKSE': 'IHSG', 'EIDO': 'MSCI Indonesia', 'BSDE.JK': 'BSDE', 'CTRA.JK': 'CTRA', 'SMRA.JK': 'SMRA', 'PWON.JK': 'PWON', 'APLN.JK': 'APLN', 'LPKR.JK': 'LPKR', 'DMAS.JK': 'DMAS' };
+function dailyExternal() { try { fetchExternal(true); } catch (e) {} }
+function xmlText(s) { return String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/\s+/g, ' ').trim(); }
+/** RSS → [{title, link, source, date}] tanpa XmlService (lebih toleran terhadap feed yang tidak rapi). */
+function parseRss(xml) {
+  const items = String(xml).match(/<item[\s>][\s\S]*?<\/item>/gi) || [];
+  return items.map(it => { const tag = t => { const m = it.match(new RegExp('<' + t + '[^>]*>([\\s\\S]*?)<\\/' + t + '>', 'i')); return m ? xmlText(m[1]) : ''; };
+    let title = tag('title'), source = tag('source');
+    if (!source) { const m = title.match(/\s[-–]\s([^-–]{2,40})$/); if (m) source = m[1].trim(); }
+    if (source && title.endsWith(' - ' + source)) title = title.slice(0, -(source.length + 3)).trim();
+    const d = new Date(tag('pubDate') || tag('dc:date'));
+    return { title: title.slice(0, 220), link: tag('link').slice(0, 600), source: source.slice(0, 60), date: isNaN(d) ? '' : d.toISOString() };
+  }).filter(x => x.title && /^https?:\/\//.test(x.link));
+}
+function fetchText(u) { const r = UrlFetchApp.fetch(u, { muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0 (MARKETHINGS)' } });
+  if (r.getResponseCode() !== 200) throw new Error('HTTP ' + r.getResponseCode()); return r.getContentText(); }
+function fetchNews(errs) {
+  const out = [], seen = {}, add = (x, topic) => { const k = x.title.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 70); if (seen[k]) return; seen[k] = 1; out.push(Object.assign({ topic: topic }, x)); };
+  let pool = null;
+  NEWS_TOPICS.forEach(t => {
+    let got = [];
+    try { got = parseRss(fetchText('https://news.google.com/rss/search?q=' + encodeURIComponent(t.q) + '&hl=id&gl=ID&ceid=ID:id')); }
+    catch (e) { errs.push('Google News (' + t.label + '): ' + String(e.message || e).slice(0, 60)); }
+    if (!got.length) {
+      if (!pool) { pool = []; NEWS_FALLBACK.forEach(u => { try { pool = pool.concat(parseRss(fetchText(u))); } catch (e) { errs.push(hostOf(u) + ': ' + String(e.message || e).slice(0, 40)); } }); }
+      got = pool.filter(x => t.kw.test(x.title));
+    }
+    got.sort((a, b) => a.date < b.date ? 1 : -1).slice(0, 8).forEach(x => add(x, t.id));
+  });
+  return out;
+}
+/** Harga penutupan harian 6 bulan terakhir dari Yahoo Finance (tanpa kunci API). */
+function fetchMarket(errs) {
+  const list = String(prop('MARKET_TICKERS') || TICKERS_DEFAULT).split(',').map(x => x.trim()).filter(Boolean).slice(0, 10), out = [];
+  list.forEach(tk => {
+    try {
+      const j = JSON.parse(fetchText('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(tk) + '?range=6mo&interval=1d'));
+      const r = j && j.chart && j.chart.result && j.chart.result[0]; if (!r) throw new Error('data kosong');
+      const ts = r.timestamp || [], cl = (r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close) || [];
+      const pts = ts.map((t, i) => [t, cl[i]]).filter(p => typeof p[1] === 'number' && isFinite(p[1]));
+      if (pts.length < 2) throw new Error('data kosong');
+      const last = pts[pts.length - 1][1], at = days => { const lim = pts[pts.length - 1][0] - days * 86400; let v = pts[0][1]; pts.forEach(p => { if (p[0] <= lim) v = p[1]; }); return v; };
+      const pct = (a, b) => b ? Math.round((a / b - 1) * 1000) / 10 : null;
+      out.push({ t: tk, name: TICKER_NAME[tk] || tk.replace(/\.JK$/, ''), cur: (r.meta && r.meta.currency) || '', last: Math.round(last * 100) / 100, date: new Date(pts[pts.length - 1][0] * 1000).toISOString().slice(0, 10),
+        d1: pct(last, pts[pts.length - 2][1]), m1: pct(last, at(30)), m3: pct(last, at(91)), m6: pct(last, pts[0][1]),
+        spark: pts.filter((p, i) => i % 2 === 0 || i === pts.length - 1).slice(-64).map(p => Math.round(p[1] * 100) / 100) });
+    } catch (e) { errs.push(tk + ': ' + String(e.message || e).slice(0, 50)); }
+  });
+  return out;
+}
+const EXT_PROMPT = (macro, market, news) => `Kamu analis riset pasar properti residensial (rumah tapak & ruko) di Bandung untuk tim Product Development sebuah developer township.
+Baca kondisi eksternal di bawah dan jelaskan pengaruhnya ke bisnis properti: permintaan & daya beli pembeli rumah, akses KPR, minat investor, biaya bangun, dan sentimen pasar.
+Hanya pakai fakta dari data di bawah. Jangan mengarang angka. Bila data kurang, katakan apa yang belum diketahui.
+
+Indikator makro (Bank Indonesia): ${JSON.stringify(macro)}
+Pasar modal (harga penutupan, % perubahan 1 hari / 1 bulan / 3 bulan / 6 bulan): ${JSON.stringify(market.map(m => ({ nama: m.name, terakhir: m.last, tanggal: m.date, d1: m.d1, m1: m.m1, m3: m.m3, m6: m.m6 })))}
+Berita terbaru (topik · tanggal · sumber · judul):
+${news.map(n => `- ${n.topic} · ${String(n.date).slice(0, 10)} · ${n.source} · ${n.title}`).join('\n')}
+
+Balas HANYA JSON valid, Bahasa Indonesia, tanpa teks lain:
+{"ringkasan":"2-3 kalimat kondisi umum dan artinya untuk penjualan properti",
+ "suasana":"positif|netral|waspada|negatif",
+ "faktor":[{"topik":"Pasar modal & MSCI|Suku bunga & KPR|Properti & kebijakan|Ekonomi & daya beli|Bandung & sekitarnya","arah":"positif|netral|negatif","judul":"maks 8 kata","isi":"1-2 kalimat, sebut angka/berita","dampak":"1 kalimat dampak ke penjualan properti"}],
+ "pantau":["2-4 hal yang perlu dipantau minggu-minggu ke depan"],
+ "saran":["2-4 saran konkret untuk marketing / product development"]}
+Faktor 4-6 butir, urut dari yang paling berpengaruh.`;
+function readExternal() { try { const r = readTable('Settings').find(x => String(x.id) === 'external'); return r && r.value ? JSON.parse(r.value) : {}; } catch (e) { return {}; } }
+function fetchExternal(withAi) {
+  const errs = [], cur = readExternal(), market = fetchMarket(errs), news = fetchNews(errs);
+  const ext = { fetchedAt: now(), market: market.length ? market : (cur.market || []), news: news.length ? news : (cur.news || []), brief: cur.brief || null, briefAt: cur.briefAt || '', err: errs.slice(0, 12).join('; ') };
+  if (withAi && aiProvider() && (news.length || market.length)) {
+    try { const b = parseJson(aiText([{ type: 'text', text: EXT_PROMPT(readMacro(), ext.market, ext.news.slice(0, 40)) }], 2200, aiEffort()));
+      if (b && b.ringkasan) { ext.brief = b; ext.briefAt = now(); } }
+    catch (e) { ext.err = (ext.err ? ext.err + '; ' : '') + 'AI: ' + String(e.message || e).slice(0, 120); }
+  }
+  let json = JSON.stringify(ext);
+  while (json.length > 48000 && ext.news.length > 10) { ext.news = ext.news.slice(0, ext.news.length - 5); json = JSON.stringify(ext); }   // batas isi satu sel Sheet
+  upsert('Settings', { id: 'external', value: json, updatedAt: now() });
+  bumpRev();
+  return ext;
 }
 
 /**
